@@ -1,6 +1,7 @@
 import RedmineIssuePlugin from './main'
 import {RedmineIssue} from './lib/redmine'
 import * as path from 'path'
+import IssueDetailsModal from './issue-details-modal'
 
 export default class IssueWidget {
   el: HTMLElement;
@@ -12,6 +13,7 @@ export default class IssueWidget {
     this.plugin = plugin
     this.el = el
     this.el.addEventListener('refresh', this.loadIssue.bind(this))
+    this.el.addEventListener('click', this.onClick.bind(this))
     this.el.addClass('loading')
   }
 
@@ -88,6 +90,18 @@ export default class IssueWidget {
     this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedAt))
     this.addMetaField(meta, 'Priority', this.issue.priority)
     this.addMetaField(meta, 'Status', this.issue.status)
+  }
+
+  onClick(event: MouseEvent): void {
+    if ((event.target as HTMLElement).closest('a')) {
+      return
+    }
+
+    if (!this.issue?.id) {
+      return
+    }
+
+    new IssueDetailsModal(this.plugin, this.issue.id.toString()).open()
   }
 
   addMetaField(container: HTMLDivElement, label: string, value: string): void {

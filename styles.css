@@ -16,10 +16,12 @@
     background-color: var(--background-primary-alt);
     border-radius: 5px;
     padding: 5px 10px 10px 10px;
+    cursor: pointer;
 }
 
 .redmine-issue.in-error {
     color: var(--text-error);
+    cursor: default;
     text-align: center;
     padding: 1em;
 }
@@ -59,6 +61,68 @@
 
 .redmine-issue-meta-label {
     color: var(--text-muted);
+}
+
+.redmine-issue-modal-shell {
+    width: min(1100px, 92vw);
+    max-width: 92vw;
+}
+
+.redmine-issue-modal {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.redmine-issue-modal-title {
+    margin-bottom: 0.3em;
+}
+
+.redmine-issue-modal-link-row {
+    margin-bottom: 1em;
+}
+
+.redmine-issue-modal-section {
+    margin-top: 1.25em;
+}
+
+.redmine-issue-modal-section-title {
+    margin-bottom: 0.5em;
+}
+
+.redmine-issue-modal-grid {
+    display: grid;
+    gap: 0.75em;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.redmine-issue-modal-field-label {
+    color: var(--text-muted);
+    font-size: 0.8em;
+    margin-bottom: 0.15em;
+}
+
+.redmine-issue-modal-field-value {
+    word-break: break-word;
+}
+
+.redmine-issue-modal-description {
+    line-height: 1.5;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.redmine-issue-modal-attachments {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.redmine-issue-modal-attachment-details,
+.redmine-issue-modal-empty,
+.redmine-issue-modal-loading {
+    color: var(--text-muted);
+    font-size: 0.85em;
+    margin-top: 0.15em;
 }
 
 .redmine-modal-commands {
