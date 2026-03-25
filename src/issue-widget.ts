@@ -58,6 +58,13 @@ export default class IssueWidget {
       cls: ['redmine-issue-title']
     })
 
+    if (this.issue.description) {
+      this.el.createDiv({
+        text: this.issue.description,
+        cls: ['redmine-issue-description']
+      })
+    }
+
     const subheader = this.el.createDiv({ cls: ['redmine-issue-details'] })
     subheader.createSpan({
       text: `${this.issue.id}`

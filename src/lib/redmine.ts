@@ -7,6 +7,7 @@ export interface RedmineIssue {
   id: string;
   project: RedmineProject,
   subject: string;
+  description: string;
   status: string;
   timeTracking: RedmineIssueTracking
 }
@@ -132,6 +133,7 @@ export default class RedmineClient {
         name: res.issue.project.name
       },
       subject: res.issue.subject,
+      description: res.issue.description || '',
       status: res.issue.name,
       timeTracking: {
         doneRatio: res.issue.done_ratio || 0,

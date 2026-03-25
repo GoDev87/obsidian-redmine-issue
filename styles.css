@@ -25,8 +25,18 @@
 }
 
 .redmine-issue-title {
+    color: var(--em-color);
     height: 3em;
     overflow: hidden;
+}
+
+.redmine-issue-description {
+    margin: 0.4em 0 0.8em 0;
+    font-size: 0.85em;
+    line-height: 1.4;
+    max-height: 7em;
+    overflow: hidden;
+    white-space: pre-wrap;
 }
 
 .redmine-issue-details span {
