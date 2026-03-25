@@ -1,7 +1,7 @@
-import typescript from '@rollup/plugin-typescript';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
+import ts from 'typescript';
 
 const banner =
     `/*
@@ -10,6 +10,42 @@ if you want to view the source visit the plugins github repository
 https://github.com/daaru00/obsidian-redmine-issue/
 */
 `;
+
+const tsCompilerOptions = {
+    ...ts.convertCompilerOptionsFromJson({
+        baseUrl: '.',
+        inlineSources: true,
+        module: 'ESNext',
+        target: 'ES2018',
+        moduleResolution: 'node',
+        esModuleInterop: true,
+        lib: ['dom', 'es5', 'scripthost', 'es2015']
+    }, '.').options,
+    sourceMap: true,
+    inlineSourceMap: false,
+    inlineSources: true
+};
+
+function transpileTypescript() {
+    return {
+        name: 'transpile-typescript',
+        transform(code, id) {
+            if (!id.endsWith('.ts')) {
+                return null;
+            }
+
+            const result = ts.transpileModule(code, {
+                compilerOptions: tsCompilerOptions,
+                fileName: id
+            });
+
+            return {
+                code: result.outputText,
+                map: result.sourceMapText ? JSON.parse(result.sourceMapText) : null
+            };
+        }
+    };
+}
 
 export default {
     input: './src/main.ts',
@@ -22,8 +58,8 @@ export default {
     },
     external: ['obsidian', 'fs', 'os', 'child_process', 'path', 'crypto', 'buffer', 'process', 'stream', 'https', 'http', 'http2'],
     plugins: [
-        typescript(),
-        nodeResolve({ browser: true }),
+        transpileTypescript(),
+        nodeResolve({ browser: true, extensions: ['.mjs', '.js', '.json', '.node', '.ts'] }),
         commonjs(),
         json()
     ]

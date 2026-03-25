@@ -11,11 +11,9 @@ import TrackingView, { VIEW_TYPE_OUTPUT } from './tracking-view'
 
 const EVENT_BUS_NAME = 'redmine-event-bus'
 
-declare global {
-	interface Window {
-		redmineEventBus: Comment; 
-		timeTrackerEventBus: Comment; 
-	}
+type RedmineEventWindow = Window & {
+	redmineEventBus?: Comment
+	timeTrackerEventBus?: Comment
 }
 
 export default class RedmineIssuePlugin extends Plugin {
@@ -59,8 +57,9 @@ export default class RedmineIssuePlugin extends Plugin {
 		this.redmineClient = new RedmineClient(this.settings)
 		this.refreshData()
 
-		window.redmineEventBus = document.createComment(EVENT_BUS_NAME)
-		window.redmineEventBus.addEventListener('timersave', this.onSaveTimer.bind(this))
+		const eventWindow = window as RedmineEventWindow
+		eventWindow.redmineEventBus = document.createComment(EVENT_BUS_NAME)
+		eventWindow.redmineEventBus.addEventListener('timersave', this.onSaveTimer.bind(this))
 	}
 
 	refreshData(): void {
@@ -115,8 +114,9 @@ export default class RedmineIssuePlugin extends Plugin {
 	}
 
 	onTimerSaved(event: OnTimerSaveEvent): void {
-		if (window.timeTrackerEventBus) {
-			window.timeTrackerEventBus.dispatchEvent(new CustomEvent('timersaved', event))
+		const eventWindow = window as RedmineEventWindow
+		if (eventWindow.timeTrackerEventBus) {
+			eventWindow.timeTrackerEventBus.dispatchEvent(new CustomEvent('timersaved', event))
 		}
 
 		this.refreshData()
@@ -133,6 +133,6 @@ export default class RedmineIssuePlugin extends Plugin {
 	}
 
 	onunload(): void {
-		delete window.redmineEventBus
+		delete (window as RedmineEventWindow).redmineEventBus
 	}
 }
