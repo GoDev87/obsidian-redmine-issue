@@ -17,10 +17,6 @@ In order to show issues details the plugin need to be configured with `host` and
 
 ![credentials settings](./doc/imgs/redmine-credentials-settings.png)
 
-The total working day hours can be set with the appropriate configuration. 
-
-![working days settings](./doc/imgs/working-day-hours-settings.png)
-
 ## Usage
 
 Add this code block where you want to show the issue widget:
@@ -45,13 +41,3 @@ or add multiple ids, one for each line, to show a grid of widgets:
 Open the preview mode to see issue's details:
 
 ![issue details](./doc/gifs/redmine-details.gif)
-
-## Usage with Time Tracker
-
-This plugin is compatible with [Time Tracker Plugin](https://github.com/daaru00/obsidian-timer-tracker), you can start a timer and save it as Redmine Time Entry:
-
-![issue time tracker](./doc/gifs/redmine-time-tracker.gif)
-
-An additional panel can be activated in order to show the percentage of worked hours are being currently saved to Redmine:
-
-![issue time tracked statistics](./doc/gifs/redmine-time-stats.gif)

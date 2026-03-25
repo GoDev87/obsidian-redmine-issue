@@ -47,26 +47,6 @@
     margin-right: 5px;
 }
 
-.redmine-issue-time-bar-container {
-    height: 1em;
-    background-color: var(--text-normal);
-    overflow: hidden;
-    margin-top: 0.2em;
-}
-
-.redmine-issue-time-bar, .redmine-issue-time-bar-overflow {
-    height: 100%;
-    width: 0;
-}
-
-.redmine-issue-time-bar {
-    background-color: var(--text-accent-hover);
-}
-
-.redmine-issue-time-bar-overflow {
-    background-color: var(--text-error-hover);
-}
-
 .redmine-modal-commands {
     text-align: right;
     padding-top: 2em;
@@ -79,33 +59,3 @@
     text-overflow: ellipsis;
 }
 
-.redmine-tracking-filter {
-    text-align: center;
-    padding: 0.5em;
-}
-
-.redmine-tracking-filter button {
-    margin: 0;
-}
-
-.redmine-tracking-filter span {
-    margin: 0 0.5em;
-}
-
-.redmine-tracking-stats {
-    width: 100%;
-    height: 100%;
-    margin: auto;
-    max-width: 300px;
-    max-height: 300px;
-}
-
-.redmine-tracking-stats circle {
-    transition: 400ms stroke-dashoffset;
-    transform: rotate(-90deg);
-    transform-origin: center;
-}
-
-.redmine-tracking-stats #circle-bg {
-    stroke: var(--background-primary);
-}

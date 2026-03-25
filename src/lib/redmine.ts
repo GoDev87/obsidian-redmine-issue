@@ -9,27 +9,11 @@ export interface RedmineIssue {
   subject: string;
   description: string;
   status: string;
-  timeTracking: RedmineIssueTracking
 }
 
 export interface RedmineProject {
   id: string;
   name: string;
-}
-
-export interface RedmineIssueTracking {
-  spentHours: number;
-  doneRatio: number;
-  estimatedHours: number;
-}
-
-export interface RedmineTimeEntry {
-  id: string;
-  issueId: number;
-  hours: number;
-  activity: number;
-  spentOn: Date;
-  comments: string;
 }
 
 export interface RedmineUser {
@@ -39,13 +23,6 @@ export interface RedmineUser {
   lastName: string;
   login: string;
   mail: string;
-}
-
-export interface RedmineTimeEntryActivity {
-  id: string;
-  name: string;
-  isDefault: boolean;
-  projectId: string;
 }
 
 export default class RedmineClient {
@@ -134,65 +111,7 @@ export default class RedmineClient {
       },
       subject: res.issue.subject,
       description: res.issue.description || '',
-      status: res.issue.name,
-      timeTracking: {
-        doneRatio: res.issue.done_ratio || 0,
-        spentHours: res.issue.spent_hours || 0,
-        estimatedHours: res.issue.estimated_hours || 0
-      }
+      status: res.issue.name
     }
-  }
-
-  async getAllActivities(): Promise<RedmineTimeEntryActivity[]> {
-    const res = await this.callApi('GET', join('enumerations', 'time_entry_activities.json'))
-    res.time_entry_activities = res.time_entry_activities || []
-
-    return res.time_entry_activities.map((activity: { id: any; name: any; is_default: any }) => ({
-      id: activity.id,
-      name: activity.name,
-      isDefault: activity.is_default
-    }))
-  }
-
-  async getAllActivitiesByProject(projectId: string): Promise<RedmineTimeEntryActivity[]> {
-    const res = await this.callApi('GET', join('projects', projectId + '.json'))
-    res.project = res.project || {}
-    res.project.time_entry_activities = res.project.time_entry_activities || []
-
-    return res.project.time_entry_activities.map((activity: { id: any; name: any; is_default: any }) => ({
-      id: activity.id,
-      name: activity.name,
-      isDefault: activity.is_default,
-      projectId: projectId
-    }))
-  }
-  
-  async saveIssueTimeEntry(issueId: string, hours: number, activityId: number, spentOn?: Date, comments?: string): Promise<void> {
-    await this.callApi('POST', 'time_entries.json', {
-      time_entry: {
-        issue_id: issueId,
-        comments: comments || '',
-        activity_id: activityId,
-        hours: hours,
-        spent_on: (spentOn || new Date()).toISOString().slice(0, 10)
-      }
-    })
-  }
-
-  async getTimeEntriesByDate(date?: Date): Promise<RedmineTimeEntry[]> {
-    date = date || (new Date())
-    const dateFilter = date.toISOString().slice(0, 10)
-
-    const res = await this.callApi('GET', `time_entries.json?user_id=me&from=${dateFilter}&to=${dateFilter}`)
-    res.time_entries = res.time_entries || []
-
-    return res.time_entries.map((entry: { id: number, issue: { id: number }, activity: { id: number }, hours: number, spent_on: string, comments: string }) => ({
-      id: entry.id,
-      issueId: entry.issue.id,
-      hours: entry.hours,
-      activity: entry.activity.id,
-      spentOn: new Date(entry.spent_on),
-      comments: entry.comments,
-    }))
   }
 }

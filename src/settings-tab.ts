@@ -56,15 +56,5 @@ export default class RedmineIssueSettingTab extends PluginSettingTab {
 						button.setDisabled(false)
 					})
 				}))
-
-		new Setting(containerEl)
-			.setName('Working day hours')
-			.setDesc('the number of hours to track in a working day')
-			.addText(text => text
-				.setValue(this.plugin.settings.dayHours.toString())
-				.onChange(async (value) => {
-					this.plugin.settings.dayHours = parseInt(value)
-					await this.plugin.saveSettings()
-				}))
 	}
 }

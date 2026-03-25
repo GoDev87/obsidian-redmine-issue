@@ -1,26 +1,15 @@
 import * as os from 'os'
-import { Plugin, WorkspaceLeaf } from 'obsidian'
+import { Plugin } from 'obsidian'
 import './lib/icons'
 import RedmineClient from './lib/redmine'
 import RedmineIssuePluginSettings, { DEFAULT_SETTINGS } from './settings'
 import RedmineIssueSettingTab from './settings-tab'
 import IssueWidget from './issue-widget'
-import TrackingSaveModal from './tracking-save-modal'
-import { OnTimerSaveEvent } from './types'
-import TrackingView, { VIEW_TYPE_OUTPUT } from './tracking-view'
-
-const EVENT_BUS_NAME = 'redmine-event-bus'
-
-type RedmineEventWindow = Window & {
-	redmineEventBus?: Comment
-	timeTrackerEventBus?: Comment
-}
 
 export default class RedmineIssuePlugin extends Plugin {
 	settings: RedmineIssuePluginSettings
 	redmineClient: RedmineClient
 	issuesWidgets: IssueWidget[]
-	trackingView: TrackingView
 
 	async onload(): Promise<void> {
 		await this.loadSettings()
@@ -29,21 +18,6 @@ export default class RedmineIssuePlugin extends Plugin {
 		this.initRedmineClient()
 		
 		this.registerMarkdownCodeBlockProcessor('redmine', this.issueBlockProcessor.bind(this))
-
-		this.registerView(
-			VIEW_TYPE_OUTPUT,
-			(leaf: WorkspaceLeaf) => {
-				this.trackingView = new TrackingView(leaf, this)
-				return this.trackingView
-			}
-		)
-
-		this.addCommand({
-			id: 'app:show-redmine-stats',
-			name: 'Show Redmine tracking statistics',
-			callback: () => this.initLeaf(),
-			hotkeys: []
-		})
 
 		this.addCommand({
 			id: 'app:refresh-redmine-issues',
@@ -56,35 +30,10 @@ export default class RedmineIssuePlugin extends Plugin {
 	initRedmineClient(): void {
 		this.redmineClient = new RedmineClient(this.settings)
 		this.refreshData()
-
-		const eventWindow = window as RedmineEventWindow
-		eventWindow.redmineEventBus = document.createComment(EVENT_BUS_NAME)
-		eventWindow.redmineEventBus.addEventListener('timersave', this.onSaveTimer.bind(this))
 	}
 
 	refreshData(): void {
 		document.querySelectorAll('.redmine-issue').forEach(issue => issue.dispatchEvent(new CustomEvent('refresh')))
-		if (this.trackingView) {
-			this.trackingView.refreshStats()
-		}
-	}
-
-	initLeaf(): void {
-		const { workspace } = this.app
-
-		if (workspace.getLeavesOfType(VIEW_TYPE_OUTPUT).length > 0) {
-			return
-		}
-
-		const leaf = workspace.getRightLeaf(false)
-		if (!leaf) {
-			return
-		}
-
-		leaf.setViewState({
-			type: VIEW_TYPE_OUTPUT,
-			active: true
-		})
 	}
 
 	async issueBlockProcessor(content: string, el: HTMLElement): Promise<void> {
@@ -97,29 +46,15 @@ export default class RedmineIssuePlugin extends Plugin {
 		for (const key of issues) {
 			const issueWidgetContainer = container.createDiv()
 			issueWidgetContainer.addClass('redmine-issue-grid-item')
-			
+		
 			const issueWidget = issueWidgetContainer.createDiv()
 			issueWidget.addClass('redmine-issue')
-			issueWidget.addClass('timer-tracker-compatible')
 			issueWidget.dataset.identifier = key
 			issueWidget.dataset.type = 'redmine'
 
 			new IssueWidget(this, issueWidget)
 				.setIssueIdentifier(key)
 		}
-	}
-
-	async onSaveTimer(event: OnTimerSaveEvent): Promise<void> {
-		new TrackingSaveModal(this, event).open()
-	}
-
-	onTimerSaved(event: OnTimerSaveEvent): void {
-		const eventWindow = window as RedmineEventWindow
-		if (eventWindow.timeTrackerEventBus) {
-			eventWindow.timeTrackerEventBus.dispatchEvent(new CustomEvent('timersaved', event))
-		}
-
-		this.refreshData()
 	}
 
 	async loadSettings(): Promise<void> {
@@ -130,9 +65,5 @@ export default class RedmineIssuePlugin extends Plugin {
 		await this.saveData(this.settings)
 
 		this.initRedmineClient()
-	}
-
-	onunload(): void {
-		delete (window as RedmineEventWindow).redmineEventBus
 	}
 }

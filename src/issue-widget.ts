@@ -7,8 +7,6 @@ export default class IssueWidget {
   plugin: RedmineIssuePlugin;
   redmineIssueKey: string;
   issue: RedmineIssue;
-  timerControlContainer: HTMLDivElement;
-  transitionControlContainer: HTMLDivElement;
 
   constructor(plugin: RedmineIssuePlugin, el: HTMLElement) {
     this.plugin = plugin
@@ -45,7 +43,6 @@ export default class IssueWidget {
 
     this.el.empty()
     this.showIssueDetails()
-    this.showTimeStats()
   }
 
   showIssueDetails(): void {
@@ -85,25 +82,5 @@ export default class IssueWidget {
       },
       cls: ['external-link']
     })
-  }
-
-  showTimeStats(): void {
-    const container = this.el.createDiv({ cls: ['redmine-issue-time-bar-container'] })
-    const timeBar = container.createDiv({ cls: ['redmine-issue-time-bar'] })
-
-    const { doneRatio, estimatedHours, spentHours } = this.issue.timeTracking
-    if (estimatedHours && estimatedHours > 0) {
-      const percentage = Math.ceil(spentHours / estimatedHours * 100)
-      if (percentage <= 100) {
-        timeBar.style.width = percentage + '%'
-      } else {
-        timeBar.style.width = '100%'
-
-        const timeBarOverflow = timeBar.createDiv({ cls: ['redmine-issue-time-bar-overflow'] })
-        timeBarOverflow.style.width = (percentage - 100) + '%'
-      }
-    } else {
-      timeBar.style.width = Math.ceil(doneRatio) + '%'
-    }
   }
 }
