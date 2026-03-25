@@ -82,5 +82,40 @@ export default class IssueWidget {
       },
       cls: ['external-link']
     })
+
+    const meta = this.el.createDiv({ cls: ['redmine-issue-meta'] })
+    this.addMetaField(meta, 'Assigned', this.issue.assignee)
+    this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedAt))
+    this.addMetaField(meta, 'Priority', this.issue.priority)
+    this.addMetaField(meta, 'Status', this.issue.status)
+  }
+
+  addMetaField(container: HTMLDivElement, label: string, value: string): void {
+    if (!value) {
+      return
+    }
+
+    const row = container.createDiv({ cls: ['redmine-issue-meta-row'] })
+    row.createSpan({
+      text: `${label}: `,
+      cls: ['redmine-issue-meta-label']
+    })
+    row.createSpan({
+      text: value,
+      cls: ['redmine-issue-meta-value']
+    })
+  }
+
+  formatUpdatedAt(updatedAt: string): string {
+    if (!updatedAt) {
+      return ''
+    }
+
+    const date = new Date(updatedAt)
+    if (Number.isNaN(date.getTime())) {
+      return updatedAt
+    }
+
+    return date.toLocaleString()
   }
 }

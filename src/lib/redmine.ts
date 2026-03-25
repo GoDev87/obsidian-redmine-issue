@@ -9,6 +9,9 @@ export interface RedmineIssue {
   subject: string;
   description: string;
   status: string;
+  priority: string;
+  assignee: string;
+  updatedAt: string;
 }
 
 export interface RedmineProject {
@@ -111,7 +114,10 @@ export default class RedmineClient {
       },
       subject: res.issue.subject,
       description: res.issue.description || '',
-      status: res.issue.name
+      status: res.issue.status?.name || '',
+      priority: res.issue.priority?.name || '',
+      assignee: res.issue.assigned_to?.name || '',
+      updatedAt: res.issue.updated_on || ''
     }
   }
 }
