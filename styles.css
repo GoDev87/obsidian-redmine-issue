@@ -54,6 +54,7 @@
     display: inline-block;
     padding: 0.15em 0.55em;
     border-radius: 999px;
+    background-color: #614ba6;
     color: white;
     font-size: 0.95em;
     font-weight: 600;
@@ -61,36 +62,13 @@
     vertical-align: middle;
 }
 
-.redmine-status-badge-new,
-.redmine-status-badge-open {
-    background-color: #2f7ed8;
+.redmine-status-badge-nouveau {
+    background-color: #0065ff;
 }
 
-.redmine-status-badge-in-progress,
-.redmine-status-badge-progress {
-    background-color: #d9822b;
-}
-
-.redmine-status-badge-feedback,
-.redmine-status-badge-needs-feedback {
-    background-color: #b07aa1;
-}
-
-.redmine-status-badge-resolved {
-    background-color: #3d9970;
-}
-
-.redmine-status-badge-closed {
-    background-color: #2d6a4f;
-}
-
-.redmine-status-badge-rejected,
-.redmine-status-badge-blocked {
-    background-color: #c0392b;
-}
-
-.redmine-status-badge-default {
-    background-color: var(--text-muted);
+.redmine-status-badge-resolu,
+.redmine-status-badge-ferme {
+    background-color: #e5123d;
 }
 
 .redmine-issue-meta {

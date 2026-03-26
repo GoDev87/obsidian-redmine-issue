@@ -6,6 +6,8 @@ import RedmineIssuePluginSettings, { DEFAULT_SETTINGS } from './settings'
 import RedmineIssueSettingTab from './settings-tab'
 import IssueWidget from './issue-widget'
 
+// https://d-yoshi.github.io/redmine-openapi/#tag/Issues/operation/getIssue
+
 export default class RedmineIssuePlugin extends Plugin {
 	settings = DEFAULT_SETTINGS as RedmineIssuePluginSettings
 	redmineClient!: RedmineClient
