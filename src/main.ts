@@ -7,9 +7,9 @@ import RedmineIssueSettingTab from './settings-tab'
 import IssueWidget from './issue-widget'
 
 export default class RedmineIssuePlugin extends Plugin {
-	settings: RedmineIssuePluginSettings
-	redmineClient: RedmineClient
-	issuesWidgets: IssueWidget[]
+	settings = DEFAULT_SETTINGS as RedmineIssuePluginSettings
+	redmineClient!: RedmineClient
+	issuesWidgets: IssueWidget[] = []
 
 	async onload(): Promise<void> {
 		await this.loadSettings()

@@ -9,7 +9,10 @@ An [Obsidian.md](https://obsidian.md/) plugin that show Redmine issue details.
 
 ## Installation
 
-Download zip archive from [GitHub releases page](https://github.com/daaru00/obsidian-redmine-issue/releases) and extract it into `<vault>/.obsidian/plugins` directory.
+1. Clone this repository into the `<vault>/.obsidian/plugins` directory.
+2. Go inside the plugin directory and run `npm install` to install dependencies.
+3. Run `npm run build` to build the plugin.
+4. Enable the plugin in Obsidian settings.
 
 ## Configurations
 
@@ -38,6 +41,4 @@ or add multiple ids, one for each line, to show a grid of widgets:
 ```
 ````
 
-Open the preview mode to see issue's details:
-
-![issue details](./doc/gifs/redmine-details.gif)
+Open the preview mode to see issue's details

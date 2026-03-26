@@ -1,13 +1,13 @@
 import RedmineIssuePlugin from './main'
-import {RedmineIssue} from './lib/redmine'
-import * as path from 'path'
 import IssueDetailsModal from './issue-details-modal'
+import { appendStatusBadge } from './lib/status-badge'
+import { RedmineIssue } from './interfaces/redmine'
 
 export default class IssueWidget {
   el: HTMLElement;
   plugin: RedmineIssuePlugin;
-  redmineIssueKey: string;
-  issue: RedmineIssue;
+  redmineIssueKey = '';
+  issue?: RedmineIssue;
 
   constructor(plugin: RedmineIssuePlugin, el: HTMLElement) {
     this.plugin = plugin
@@ -34,8 +34,9 @@ export default class IssueWidget {
   async loadIssue(): Promise<void> {
     try {
       this.issue = await this.plugin.redmineClient.getIssueDetails(this.redmineIssueKey)
+      // console.log('Loaded issue details', this.issue)
     } catch (error) {
-      this.el.innerHTML = error.toString()
+      this.el.innerHTML = error instanceof Error ? error.message : String(error)
       this.el.addClass('in-error')
       return
     } finally {
@@ -72,24 +73,22 @@ export default class IssueWidget {
       text: `${this.issue.project.name}`
     })
     if (this.issue.status) {
-      subheader.createSpan({
-        text: `${this.issue.status}`
-      })
+      appendStatusBadge(subheader, this.issue.status.name)
     }
     subheader.createEl('a', {
       attr: {
         rel: 'noopener',
         target: '_blank',
-        href: path.join('https://'+this.plugin.settings.host, 'issues', this.issue.id.toString()),
+        href: `https://${this.plugin.settings.host}/issues/${this.issue.id.toString()}`,
       },
       cls: ['external-link']
     })
 
     const meta = this.el.createDiv({ cls: ['redmine-issue-meta'] })
-    this.addMetaField(meta, 'Assigned', this.issue.assignee)
-    this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedAt))
-    this.addMetaField(meta, 'Priority', this.issue.priority)
-    this.addMetaField(meta, 'Status', this.issue.status)
+    this.addMetaField(meta, 'Assigned', this.issue.assignedTo?.name)
+    this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedOn))
+    this.addMetaField(meta, 'Priority', this.issue.priority?.name)
+    // this.addStatusField(meta, 'Status', this.issue.status)
   }
 
   onClick(event: MouseEvent): void {
@@ -104,7 +103,7 @@ export default class IssueWidget {
     new IssueDetailsModal(this.plugin, this.issue.id.toString()).open()
   }
 
-  addMetaField(container: HTMLDivElement, label: string, value: string): void {
+  addMetaField(container: HTMLDivElement, label: string, value?: string): void {
     if (!value) {
       return
     }
@@ -118,6 +117,23 @@ export default class IssueWidget {
       text: value,
       cls: ['redmine-issue-meta-value']
     })
+  }
+
+  addStatusField(container: HTMLDivElement, label: string, value: string): void {
+    if (!value) {
+      return
+    }
+
+    const row = container.createDiv({ cls: ['redmine-issue-meta-row'] })
+    row.createSpan({
+      text: `${label}: `,
+      cls: ['redmine-issue-meta-label']
+    })
+
+    const valueContainer = row.createSpan({
+      cls: ['redmine-issue-meta-value']
+    })
+    appendStatusBadge(valueContainer, value)
   }
 
   formatUpdatedAt(updatedAt: string): string {

@@ -1,49 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import RedmineIssuePluginSettings from '../settings'
+import { RedmineIssue, RedmineFullUser } from '../interfaces/redmine'
 import { request } from 'https'
 import { join } from 'path'
-
-export interface RedmineIssue {
-  id: string;
-  project: RedmineProject,
-  subject: string;
-  description: string;
-  status: string;
-  priority: string;
-  assignee: string;
-  author: string;
-  tracker: string;
-  category: string;
-  fixedVersion: string;
-  createdAt: string;
-  updatedAt: string;
-  lastUpdatedBy: string;
-  attachments: RedmineAttachment[];
-}
-
-export interface RedmineProject {
-  id: string;
-  name: string;
-}
-
-export interface RedmineAttachment {
-  id: string;
-  fileName: string;
-  fileSize: number;
-  contentType: string;
-  createdAt: string;
-  author: string;
-  downloadUrl: string;
-}
-
-export interface RedmineUser {
-  id: string;
-  name: string;
-  firstName: string;
-  lastName: string;
-  login: string;
-  mail: string;
-}
 
 export default class RedmineClient {
   settings: RedmineIssuePluginSettings
@@ -69,12 +28,12 @@ export default class RedmineClient {
     return new Promise((resolve, reject) => {
       let resData = ''
 
-      const req = request(options, (res) => {
-        res.on('data', (chunk) => {
+      const req = request(options, (res: any) => {
+        res.on('data', (chunk: any) => {
           resData += chunk
         })
 
-        res.on('error', (error) => {
+        res.on('error', (error: any) => {
           reject(error)
         })
 
@@ -89,7 +48,7 @@ export default class RedmineClient {
         })
       })
       
-      req.on('error', (error) => {
+      req.on('error', (error: any) => {
         reject(error)
       })
 
@@ -105,7 +64,7 @@ export default class RedmineClient {
     return await this.queue.then(() => this.callApi(method, path, data))
   }
 
-  async getUser(): Promise<RedmineUser> {
+  async getUser(): Promise<RedmineFullUser> {
     const res = await this.callApi('GET', join('users', 'current.json'))
     res.user = res.user || {}
 
@@ -120,46 +79,140 @@ export default class RedmineClient {
   }
 
   async getIssueDetails(issueId: string): Promise<RedmineIssue> {
-    const res = await this.queueApi('GET', `issues/${issueId}.json?include=attachments,journals`)
+    const res = await this.queueApi('GET', `issues/${issueId}.json?include=attachments,journals,relations,children,watchers,changesets,allowed_statuses`)
+    console.log(res)
+
+    // this.queueApi('GET', `enumerations/issue_priorities.json`).then((resp) => {
+    //   console.log(resp)
+    // })
+
     res.issue = res.issue || {}
-    const journals = Array.isArray(res.issue.journals) ? res.issue.journals : []
-    const lastJournal = journals.length > 0 ? journals[journals.length - 1] : null
 
     return {
       id: res.issue.id,
       project: {
-        id: res.issue.project.id,
-        name: res.issue.project.name
+        id: res.issue.project?.id || '',
+        name: res.issue.project?.name || ''
       },
-      subject: res.issue.subject,
+      tracker: {
+        id: res.issue.tracker?.id || '',
+        name: res.issue.tracker?.name || ''
+      },
+      status: {
+        id: res.issue.status?.id || '',
+        name: res.issue.status?.name || '',
+        isClosed: res.issue.status?.is_closed || false
+      },
+      priority: {
+        id: res.issue.priority?.id || '',
+        name: res.issue.priority?.name || ''
+      },
+      author: {
+        id: res.issue.author?.id || '',
+        name: res.issue.author?.name || ''
+      },
+      assignedTo: {
+        id: res.issue.assigned_to?.id || '',
+        name: res.issue.assigned_to?.name || ''
+      },
+      category: {
+        id: res.issue.category?.id || '',
+        name: res.issue.category?.name || ''
+      },
+      fixedVersion: {
+        id: res.issue.fixed_version?.id || '',
+        name: res.issue.fixed_version?.name || ''
+      },
+      parent: {
+        id: res.issue.parent?.id || ''
+      },
+      subject: res.issue.subject || '',
       description: res.issue.description || '',
-      status: res.issue.status?.name || '',
-      priority: res.issue.priority?.name || '',
-      assignee: res.issue.assigned_to?.name || '',
-      author: res.issue.author?.name || '',
-      tracker: res.issue.tracker?.name || '',
-      category: res.issue.category?.name || '',
-      fixedVersion: res.issue.fixed_version?.name || '',
-      createdAt: res.issue.created_on || '',
-      updatedAt: res.issue.updated_on || '',
-      lastUpdatedBy: lastJournal?.user?.name || '',
-      attachments: (res.issue.attachments || []).map((attachment: {
-        id: any;
-        filename: any;
-        filesize: any;
-        content_type: any;
-        created_on: any;
-        author?: { name?: any };
-        content_url: any;
-      }) => ({
-        id: attachment.id,
-        fileName: attachment.filename || '',
-        fileSize: attachment.filesize || 0,
+      startDate: res.issue.start_date || '',
+      dueDate: res.issue.due_date || '',
+      doneRatio: res.issue.done_ratio || 0,
+      isPrivate: res.issue.is_private || false,
+      estimatedHours: res.issue.estimated_hours || 0,
+      totalEstimatedHours: res.issue.total_estimated_hours || 0,
+      spentHours: res.issue.spent_hours || 0,
+      totalSpentHours: res.issue.total_spent_hours || 0,
+      customFields: (res.issue.custom_fields || []).map((field: any) => ({
+        id: field.id || '',
+        name: field.name || '',
+        multiple: field.multiple || false,
+        value: field.value || ''
+      })),
+      createdOn: res.issue.created_on || '',
+      updatedOn: res.issue.updated_on || '',
+      closedOn: res.issue.closed_on || '',
+      changesets: (res.issue.changesets || []).map((changeset: any) => ({
+        revision: changeset.revision || '',
+        user: {
+          id: changeset.user?.id || '',
+          name: changeset.user?.name || ''
+        },
+        comments: changeset.comments || '',
+        committedOn: changeset.committed_on || ''
+      })),
+      children: (res.issue.children || []).map((child: any) => ({
+        id: child.id || '',
+        tracker: {
+          id: child.tracker?.id || '',
+          name: child.tracker?.name || ''
+        },
+        subject: child.subject || ''
+      })),
+      attachments: (res.issue.attachments || []).map((attachment: any) => ({
+        id: attachment.id || '',
+        filename: attachment.filename || '',
+        filesize: attachment.filesize || 0,
         contentType: attachment.content_type || '',
-        createdAt: attachment.created_on || '',
-        author: attachment.author?.name || '',
-        downloadUrl: attachment.content_url || ''
+        description: attachment.description || '',
+        contentUrl: attachment.content_url || '',
+        thumbnailUrl: attachment.thumbnail_url || '',
+        author: {
+          id: attachment.author?.id || '',
+          name: attachment.author?.name || ''
+        },
+        createdOn: attachment.created_on || ''
+      })),
+      relations: (res.issue.relations || []).map((relation: any) => ({
+        id: relation.id || '',
+        issueId: relation.issue_id || '',
+        issueToId: relation.issue_to_id || '',
+        relationType: relation.relation_type || '',
+        delay: relation.delay || 0
+      })),
+      journals: (res.issue.journals || []).map((journal: any) => ({
+        id: journal.id || '',
+        user: {
+          id: journal.user?.id || '',
+          name: journal.user?.name || ''
+        },
+        notes: journal.notes || '',
+        createdOn: journal.created_on || '',
+        updatedOn: journal.updated_on || '',
+        updatedBy: {
+          id: journal.updated_by?.id || '',
+          name: journal.updated_by?.name || ''
+        },
+        privateNotes: journal.private_notes || false,
+        details: (journal.details || []).map((detail: any) => ({
+          property: detail.property || '',
+          name: detail.name || '',
+          oldValue: detail.old_value || '',
+          newValue: detail.new_value || ''
+        }))
+      })),
+      watchers: (res.issue.watchers || []).map((watcher: any) => ({
+        id: watcher.id || '',
+        name: watcher.name || ''
+      })),
+      allowed_statuses: (res.issue.allowed_statuses || []).map((status: any) => ({
+        id: status.id || '',
+        name: status.name || '',
+        isClosed: status.is_closed || false
       }))
-    }
+    } as RedmineIssue
   }
 }

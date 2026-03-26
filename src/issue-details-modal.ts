@@ -1,7 +1,7 @@
 import { Modal } from 'obsidian'
-import * as path from 'path'
 import RedmineIssuePlugin from './main'
-import { RedmineAttachment, RedmineIssue } from './lib/redmine'
+import { appendStatusBadge } from './lib/status-badge'
+import { RedmineAttachment, RedmineIssue } from './interfaces/redmine'
 
 export default class IssueDetailsModal extends Modal {
   plugin: RedmineIssuePlugin
@@ -29,7 +29,7 @@ export default class IssueDetailsModal extends Modal {
     } catch (error) {
       this.contentEl.empty()
       this.contentEl.createEl('h2', {
-        text: error.toString()
+        text: error instanceof Error ? error.message : String(error)
       }).addClass('in-error')
       return
     }
@@ -48,7 +48,7 @@ export default class IssueDetailsModal extends Modal {
     const linkRow = this.contentEl.createDiv({ cls: ['redmine-issue-modal-link-row'] })
     linkRow.createEl('a', {
       text: 'Open In Redmine',
-      href: path.join(`https://${this.plugin.settings.host}`, 'issues', issue.id.toString()),
+      href: `https://${this.plugin.settings.host}/issues/${issue.id.toString()}`,
       cls: ['external-link'],
       attr: {
         rel: 'noopener',
@@ -66,16 +66,15 @@ export default class IssueDetailsModal extends Modal {
     const grid = section.createDiv({ cls: ['redmine-issue-modal-grid'] })
 
     this.addGridField(grid, 'Project', issue.project.name)
-    this.addGridField(grid, 'Tracker', issue.tracker)
-    this.addGridField(grid, 'Status', issue.status)
-    this.addGridField(grid, 'Priority', issue.priority)
-    this.addGridField(grid, 'Assigned To', issue.assignee)
-    this.addGridField(grid, 'Author', issue.author)
-    this.addGridField(grid, 'Category', issue.category)
-    this.addGridField(grid, 'Version', issue.fixedVersion)
-    this.addGridField(grid, 'Created', this.formatDate(issue.createdAt))
-    this.addGridField(grid, 'Last Update', this.formatDate(issue.updatedAt))
-    this.addGridField(grid, 'Updated By', issue.lastUpdatedBy)
+    this.addGridField(grid, 'Tracker', issue.tracker?.name)
+    this.addStatusGridField(grid, 'Status', issue.status?.name)
+    this.addGridField(grid, 'Priority', issue.priority?.name)
+    this.addGridField(grid, 'Assigned To', issue.assignedTo?.name)
+    this.addGridField(grid, 'Author', issue.author?.name)
+    this.addGridField(grid, 'Category', issue.category?.name)
+    this.addGridField(grid, 'Version', issue.fixedVersion?.name)
+    this.addGridField(grid, 'Created', this.formatDate(issue.createdOn))
+    this.addGridField(grid, 'Last Update', this.formatDate(issue.updatedOn))
   }
 
   renderDescription(description: string): void {
@@ -110,8 +109,8 @@ export default class IssueDetailsModal extends Modal {
     attachments.forEach((attachment) => {
       const row = list.createDiv({ cls: ['redmine-issue-modal-attachment'] })
       row.createEl('a', {
-        text: attachment.fileName,
-        href: attachment.downloadUrl,
+        text: attachment.filename,
+        href: attachment.contentUrl,
         cls: ['external-link'],
         attr: {
           rel: 'noopener',
@@ -121,10 +120,10 @@ export default class IssueDetailsModal extends Modal {
 
       const details = row.createDiv({ cls: ['redmine-issue-modal-attachment-details'] })
       const parts = [
-        this.formatFileSize(attachment.fileSize),
+        this.formatFileSize(attachment.filesize),
         attachment.contentType,
-        attachment.author ? `by ${attachment.author}` : '',
-        this.formatDate(attachment.createdAt)
+        attachment.author?.name ? `by ${attachment.author.name}` : '',
+        this.formatDate(attachment.createdOn)
       ].filter(Boolean)
       details.setText(parts.join(' • '))
     })
@@ -139,7 +138,7 @@ export default class IssueDetailsModal extends Modal {
     return section
   }
 
-  addGridField(container: HTMLDivElement, label: string, value: string): void {
+  addGridField(container: HTMLDivElement, label: string, value?: string): void {
     if (!value) {
       return
     }
@@ -155,13 +154,30 @@ export default class IssueDetailsModal extends Modal {
     })
   }
 
+  addStatusGridField(container: HTMLDivElement, label: string, value?: string): void {
+    if (!value) {
+      return
+    }
+
+    const row = container.createDiv({ cls: ['redmine-issue-modal-field'] })
+    row.createDiv({
+      text: label,
+      cls: ['redmine-issue-modal-field-label']
+    })
+    const valueContainer = row.createDiv({
+      cls: ['redmine-issue-modal-field-value']
+    })
+    appendStatusBadge(valueContainer, value)
+  }
+
   appendLinkifiedText(container: HTMLDivElement, text: string): void {
-    const matches = text.matchAll(/https?:\/\/[^\s)]+/g)
+    const urlRegex = /https?:\/\/[^\s)]+/g
     let lastIndex = 0
 
-    for (const match of matches) {
+    let match: RegExpExecArray | null
+    while ((match = urlRegex.exec(text)) !== null) {
       const url = match[0]
-      const startIndex = match.index || 0
+      const startIndex = match.index
       if (startIndex > lastIndex) {
         container.appendText(text.slice(lastIndex, startIndex))
       }
