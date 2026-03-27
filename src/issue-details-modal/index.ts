@@ -3,7 +3,10 @@ import RedmineIssuePlugin from '../main'
 import { RedmineIssue } from '../interfaces/redmine'
 import { GridFieldOptions } from './types'
 import { formatDate, formatFileSize, formatJournalDetail } from './utils'
-import { renderIssueContent, resolveAttachments } from './renderers'
+import { resolveAttachments } from './attachments-renderer'
+import { renderHeader } from './header-renderer'
+import { renderMetadata } from './metadata-renderer'
+import { renderTabs } from './tabs-renderer'
 
 export default class IssueDetailsModal extends Modal {
   plugin: RedmineIssuePlugin
@@ -43,7 +46,9 @@ export default class IssueDetailsModal extends Modal {
   async renderIssue(issue: RedmineIssue): Promise<void> {
     this.contentEl.empty()
     const attachments = await resolveAttachments(this, issue.attachments)
-    await renderIssueContent(this, issue, attachments)
+    renderHeader(this, issue.id.toString(), issue.subject)
+    renderMetadata(this, issue)
+    await renderTabs(this, issue, attachments)
   }
 
   createSection(title: string): HTMLDivElement {
