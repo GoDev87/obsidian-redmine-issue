@@ -1,12 +1,14 @@
 import removeAccents from 'remove-accents'
-import { Modal } from 'obsidian'
+import { MarkdownRenderer, Modal } from 'obsidian'
 import RedmineIssuePlugin from './main'
 import { appendStatusBadge } from './lib/status-badge'
 import { RedmineAttachment, RedmineIssue } from './interfaces/redmine'
+import { convertRedmineTextToMarkdown } from './lib/redmine-markdown'
 
 export default class IssueDetailsModal extends Modal {
   plugin: RedmineIssuePlugin
   issueId: string
+  objectUrls: string[] = []
 
   constructor(plugin: RedmineIssuePlugin, issueId: string) {
     super(plugin.app)
@@ -35,11 +37,12 @@ export default class IssueDetailsModal extends Modal {
       return
     }
 
-    this.renderIssue(issue)
+    await this.renderIssue(issue)
   }
 
-  renderIssue(issue: RedmineIssue): void {
+  async renderIssue(issue: RedmineIssue): Promise<void> {
     this.contentEl.empty()
+    const attachments = await this.resolveAttachments(issue.attachments)
 
     this.contentEl.createEl('h2', {
       text: `${issue.id} ${issue.subject}`,
@@ -58,8 +61,8 @@ export default class IssueDetailsModal extends Modal {
     })
 
     this.renderMetadata(issue)
-    this.renderDescription(issue.description)
-    this.renderAttachments(issue.attachments)
+    await this.renderDescription(issue.description, attachments)
+    this.renderAttachments(attachments)
   }
 
   renderMetadata(issue: RedmineIssue): void {
@@ -86,7 +89,10 @@ export default class IssueDetailsModal extends Modal {
     this.addGridField(grid, 'Last Update', this.formatDate(issue.updatedOn))
   }
 
-  renderDescription(description: string): void {
+  async renderDescription(
+    description: string,
+    attachments: RedmineAttachment[]
+  ): Promise<void> {
     const section = this.createSection('Description')
     const body = section.createDiv({ cls: ['redmine-issue-modal-description'] })
 
@@ -95,12 +101,13 @@ export default class IssueDetailsModal extends Modal {
       return
     }
 
-    description.split(/\r?\n/).forEach((line, index) => {
-      if (index > 0) {
-        body.createEl('br')
-      }
-      this.appendLinkifiedText(body, line)
-    })
+    await MarkdownRenderer.render(
+      this.app,
+      convertRedmineTextToMarkdown(description, attachments),
+      body,
+      '',
+      this.plugin
+    )
   }
 
   renderAttachments(attachments: RedmineAttachment[]): void {
@@ -119,9 +126,10 @@ export default class IssueDetailsModal extends Modal {
       const row = list.createDiv({ cls: ['redmine-issue-modal-attachment'] })
       row.createEl('a', {
         text: attachment.filename,
-        href: attachment.contentUrl,
+        href: attachment.resolvedUrl || attachment.contentUrl,
         cls: ['external-link'],
         attr: {
+          download: attachment.filename,
           rel: 'noopener',
           target: '_blank'
         }
@@ -136,6 +144,23 @@ export default class IssueDetailsModal extends Modal {
       ].filter(Boolean)
       details.setText(parts.join(' • '))
     })
+  }
+
+  async resolveAttachments(attachments: RedmineAttachment[]): Promise<RedmineAttachment[]> {
+    return Promise.all(
+      attachments.map(async (attachment) => {
+        try {
+          const resolvedUrl = await this.plugin.redmineClient.resolveAttachmentUrl(attachment)
+          this.objectUrls.push(resolvedUrl)
+          return {
+            ...attachment,
+            resolvedUrl
+          }
+        } catch {
+          return attachment
+        }
+      })
+    )
   }
 
   createSection(title: string): HTMLDivElement {
@@ -178,35 +203,6 @@ export default class IssueDetailsModal extends Modal {
     return valueContainer
   }
 
-  appendLinkifiedText(container: HTMLDivElement, text: string): void {
-    const urlRegex = /https?:\/\/[^\s)]+/g
-    let lastIndex = 0
-
-    let match: RegExpExecArray | null
-    while ((match = urlRegex.exec(text)) !== null) {
-      const url = match[0]
-      const startIndex = match.index
-      if (startIndex > lastIndex) {
-        container.appendText(text.slice(lastIndex, startIndex))
-      }
-
-      container.createEl('a', {
-        text: url,
-        href: url,
-        cls: ['external-link'],
-        attr: {
-          rel: 'noopener',
-          target: '_blank'
-        }
-      })
-      lastIndex = startIndex + url.length
-    }
-
-    if (lastIndex < text.length) {
-      container.appendText(text.slice(lastIndex))
-    }
-  }
-
   formatDate(value: string): string {
     if (!value) {
       return ''
@@ -238,5 +234,7 @@ export default class IssueDetailsModal extends Modal {
 
   onClose(): void {
     this.modalEl.removeClass('redmine-issue-modal-shell')
+    this.objectUrls.forEach((url) => URL.revokeObjectURL(url))
+    this.objectUrls = []
   }
 }

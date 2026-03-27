@@ -184,6 +184,10 @@
     word-break: break-word;
 }
 
+.redmine-issue-modal-description img {
+    max-width: 100%;
+}
+
 .redmine-issue-modal-attachments {
     display: flex;
     flex-direction: column;
@@ -209,4 +213,3 @@
     white-space: nowrap;
     text-overflow: ellipsis;
 }
-

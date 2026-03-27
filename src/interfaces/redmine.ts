@@ -87,6 +87,7 @@ export interface RedmineAttachment {
   contentType: string; // content_type
   description: string;
   contentUrl: string; // content_url
+  resolvedUrl?: string;
   thumbnailUrl: string; // thumbnail_url
   author: RedmineUser;
   createdOn: string; // created_on

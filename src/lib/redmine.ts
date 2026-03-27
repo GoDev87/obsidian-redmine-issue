@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { requestUrl } from 'obsidian'
 import RedmineIssuePluginSettings from '../settings'
-import { RedmineIssue, RedmineFullUser } from '../interfaces/redmine'
+import { RedmineAttachment, RedmineIssue, RedmineFullUser } from '../interfaces/redmine'
 import { request } from 'https'
 import { join } from 'path'
 import { parseIssueDetails } from './redmine-parser'
@@ -81,12 +82,24 @@ export default class RedmineClient {
 
   async getIssueDetails(issueId: string): Promise<RedmineIssue> {
     const res = await this.queueApi('GET', `issues/${issueId}.json?include=attachments,journals,relations,children,watchers,changesets,allowed_statuses`)
-    console.log(res)
-
-    // this.queueApi('GET', `enumerations/issue_priorities.json`).then((resp) => {
-    //   console.log(resp)
-    // })
-
     return parseIssueDetails(res.issue)
+  }
+
+  async resolveAttachmentUrl(attachment: RedmineAttachment): Promise<string> {
+    return this.fetchAttachmentUrl(attachment)
+  }
+
+  private async fetchAttachmentUrl(attachment: RedmineAttachment): Promise<string> {
+    const response = await requestUrl({
+      url: attachment.contentUrl,
+      method: 'GET',
+      headers: {
+        'X-Redmine-API-Key': this.settings.token
+      }
+    })
+
+    const contentType = response.headers['content-type'] || attachment.contentType || 'application/octet-stream'
+    const blob = new Blob([response.arrayBuffer], { type: contentType })
+    return URL.createObjectURL(blob)
   }
 }
