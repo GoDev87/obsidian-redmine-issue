@@ -131,13 +131,18 @@ async function renderTabs(
       render: async (container: HTMLDivElement) => renderDescription(context, issue.description, attachments, container)
     },
     {
+      key: 'comments',
+      label: 'Comments',
+      render: async (container: HTMLDivElement) => renderComments(context, issue.journals, container)
+    },
+    {
       key: 'history',
       label: 'History',
       render: async (container: HTMLDivElement) => renderHistory(context, issue.journals, container)
     },
     {
       key: 'attachments',
-      label: 'Attachments',
+      label: `Attachments (${attachments.length})`,
       render: async (container: HTMLDivElement) => renderAttachmentsList(context, attachments, container)
     },
     {
@@ -241,6 +246,46 @@ function renderAttachmentsList(
     ].filter(Boolean)
     details.setText(parts.join(' • '))
   })
+}
+
+async function renderComments(
+  context: IssueDetailsModalContext,
+  journals: RedmineJournal[],
+  container: HTMLDivElement
+): Promise<void> {
+  const comments = journals.filter((journal) => journal.notes)
+
+  if (!comments.length) {
+    container.createDiv({
+      text: 'No comments',
+      cls: ['redmine-issue-modal-empty']
+    })
+    return
+  }
+
+  const list = container.createDiv({ cls: ['redmine-issue-modal-history'] })
+
+  for (const comment of comments) {
+    const entry = list.createDiv({ cls: ['redmine-issue-modal-history-entry'] })
+    const header = entry.createDiv({ cls: ['redmine-issue-modal-history-header'] })
+    header.createSpan({
+      text: comment.user?.name || 'Unknown user',
+      cls: ['redmine-issue-modal-history-author']
+    })
+    header.createSpan({
+      text: context.formatDate(comment.createdOn),
+      cls: ['redmine-issue-modal-history-date']
+    })
+
+    const notes = entry.createDiv({ cls: ['redmine-issue-modal-history-notes'] })
+    await MarkdownRenderer.render(
+      context.app,
+      convertRedmineTextToMarkdown(comment.notes),
+      notes,
+      '',
+      context.plugin
+    )
+  }
 }
 
 async function renderHistory(
