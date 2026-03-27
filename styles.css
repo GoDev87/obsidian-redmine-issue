@@ -76,12 +76,23 @@
     font-size: 0.6em;
 }
 
+.redmine-issue-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
 .redmine-issue-meta-row:not(:last-child) {
     margin-bottom: 0.3em;
 }
 
 .redmine-issue-meta-label {
     color: var(--text-muted);
+}
+
+.redmine-issue-meta-value {
+    display: inline-flex;
+    align-items: center;
 }
 
 .redmine-issue-modal-shell {
@@ -128,7 +139,7 @@
     word-break: break-word;
 }
 
-.redmine-field-priority::before {
+.redmine-priority::before {
     content: '';
     display: inline-block;
     background-image: var(--redmine-priority-icon);
@@ -138,6 +149,13 @@
     background-repeat: no-repeat;
     background-size: 14px;
     background-position: center center;
+}
+
+.redmine-priority-small::before {
+    width: 8px;
+    height: 11px;
+    background-size: 11px;
+    margin-right: 2px;
 }
 
 .redmine-priority-bas {

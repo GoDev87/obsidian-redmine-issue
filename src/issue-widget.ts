@@ -1,3 +1,4 @@
+import removeAccents from 'remove-accents'
 import RedmineIssuePlugin from './main'
 import IssueDetailsModal from './issue-details-modal'
 import { appendStatusBadge } from './lib/status-badge'
@@ -87,7 +88,7 @@ export default class IssueWidget {
     const meta = this.el.createDiv({ cls: ['redmine-issue-meta'] })
     this.addMetaField(meta, 'Assigned', this.issue.assignedTo?.name)
     this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedOn))
-    this.addMetaField(meta, 'Priority', this.issue.priority?.name)
+    this.addPriorityMetaField(meta, 'Priority', this.issue.priority?.name)
     // this.addStatusField(meta, 'Status', this.issue.status)
   }
 
@@ -116,6 +117,27 @@ export default class IssueWidget {
     row.createSpan({
       text: value,
       cls: ['redmine-issue-meta-value']
+    })
+  }
+
+  addPriorityMetaField(container: HTMLDivElement, label: string, value?: string): void {
+    if (!value) {
+      return
+    }
+
+    const row = container.createDiv({ cls: ['redmine-issue-meta-row'] })
+    row.createSpan({
+      text: `${label}: `,
+      cls: ['redmine-issue-meta-label']
+    })
+    row.createSpan({
+      text: value,
+      cls: [
+        'redmine-issue-meta-value',
+        'redmine-priority',
+        'redmine-priority-small',
+        `redmine-priority-${removeAccents(value).toLowerCase()}`
+      ]
     })
   }
 

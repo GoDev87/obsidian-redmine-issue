@@ -185,7 +185,7 @@ export default class IssueDetailsModal extends Modal {
       text: value,
       cls: [
         'redmine-issue-modal-field-value',
-        'redmine-field-priority',
+        'redmine-priority',
         `redmine-priority-${removeAccents(value).toLowerCase()}`
       ]
     })
