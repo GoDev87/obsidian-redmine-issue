@@ -41,4 +41,36 @@ or add multiple ids, one for each line, to show a grid of widgets:
 ```
 ````
 
+You can also query Redmine and render the matching issues:
+````markdown
+```redmine-query
+project=APP
+assigned_to=me
+status=open
+limit=10
+```
+````
+
+Supported query keys include:
+- `project`, `subproject`
+- `assigned_to`, `assignee`, `author`
+- `status`, `tracker`, `priority`, `category`
+- `fixed_version`, `version`
+- `subject`
+- `created_on`, `updated_on`, `start_date`, `due_date`
+- `limit`, `offset`, `sort`
+
+Example with sorting:
+````markdown
+```redmine-query
+project=APP
+assigned_to=me
+status=open
+tracker=Bug
+priority=High
+sort=updated_on:desc
+limit=10
+```
+````
+
 Open the preview mode to see issue's details

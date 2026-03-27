@@ -26,6 +26,15 @@
     padding: 1em;
 }
 
+.redmine-issue-query-empty {
+    color: var(--text-muted);
+    padding: 1em 0;
+}
+
+.redmine-issue-query-empty.in-error {
+    color: var(--text-error);
+}
+
 .redmine-issue-title {
     color: var(--em-color);
     font-size: 1.1em;

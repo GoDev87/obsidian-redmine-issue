@@ -43,7 +43,8 @@ export default class RedmineClient {
           resData = resData.trim()
 
           if (res.statusCode < 200 || res.statusCode > 299) {
-            return reject(resData || `Status code ${res.statusCode}`)
+            const message = resData || `Status code ${res.statusCode}`
+            return reject(`Status code ${res.statusCode} for ${path}: ${message}`)
           }
 
           resolve(resData ? JSON.parse(resData) : '')
@@ -83,6 +84,131 @@ export default class RedmineClient {
   async getIssueDetails(issueId: string): Promise<RedmineIssue> {
     const res = await this.queueApi('GET', `issues/${issueId}.json?include=attachments,journals,relations,children,watchers,changesets,allowed_statuses`)
     return parseIssueDetails(res.issue)
+  }
+
+  async searchIssueIds(filters: Record<string, string>): Promise<string[]> {
+    const normalizedFilters = await this.normalizeIssueFilters(filters)
+    const query = new URLSearchParams()
+
+    Object.entries(normalizedFilters).forEach(([key, value]) => {
+      if (!value) {
+        return
+      }
+
+      query.set(key, value)
+    })
+
+    const path = `issues.json${query.toString() ? `?${query.toString()}` : ''}`
+    const res = await this.queueApi('GET', path)
+
+    return (res.issues || [])
+      .map((issue: { id?: string | number }) => issue.id)
+      .filter((id: string | number | undefined): id is string | number => id !== undefined && id !== null)
+      .map((id: string | number) => id.toString())
+  }
+
+  private async normalizeIssueFilters(filters: Record<string, string>): Promise<Record<string, string>> {
+    const normalizedFilters = { ...filters }
+
+    if (normalizedFilters.project_id && !this.isNumericFilterValue(normalizedFilters.project_id)) {
+      normalizedFilters.project_id = await this.resolveProjectId(normalizedFilters.project_id)
+    }
+
+    if (normalizedFilters.assigned_to_id?.toLowerCase() === 'me') {
+      normalizedFilters.assigned_to_id = await this.resolveCurrentUserId()
+    }
+
+    if (normalizedFilters.author_id?.toLowerCase() === 'me') {
+      normalizedFilters.author_id = await this.resolveCurrentUserId()
+    }
+
+    if (normalizedFilters.tracker_id && !this.isNumericFilterValue(normalizedFilters.tracker_id)) {
+      normalizedFilters.tracker_id = await this.resolveNamedValue(
+        'trackers.json',
+        'trackers',
+        normalizedFilters.tracker_id
+      )
+    }
+
+    if (normalizedFilters.priority_id && !this.isNumericFilterValue(normalizedFilters.priority_id)) {
+      normalizedFilters.priority_id = await this.resolveNamedValue(
+        'enumerations/issue_priorities.json',
+        'issue_priorities',
+        normalizedFilters.priority_id
+      )
+    }
+
+    if (
+      normalizedFilters.status_id &&
+      !this.isNumericFilterValue(normalizedFilters.status_id) &&
+      !['open', 'closed', '*'].includes(normalizedFilters.status_id.toLowerCase())
+    ) {
+      normalizedFilters.status_id = await this.resolveNamedValue(
+        'issue_statuses.json',
+        'issue_statuses',
+        normalizedFilters.status_id
+      )
+    }
+
+    if (
+      normalizedFilters.fixed_version_id &&
+      !this.isNumericFilterValue(normalizedFilters.fixed_version_id) &&
+      normalizedFilters.project_id
+    ) {
+      normalizedFilters.fixed_version_id = await this.resolveNamedValue(
+        `projects/${normalizedFilters.project_id}/versions.json`,
+        'versions',
+        normalizedFilters.fixed_version_id
+      )
+    }
+
+    return normalizedFilters
+  }
+
+  private isNumericFilterValue(value: string): boolean {
+    return /^\d+$/.test(value)
+  }
+
+  private async resolveProjectId(projectIdentifier: string): Promise<string> {
+    const res = await this.queueApi('GET', `projects/${encodeURIComponent(projectIdentifier)}.json`)
+    const projectId = res.project?.id
+
+    if (!projectId) {
+      throw new Error(`Unknown project: ${projectIdentifier}`)
+    }
+
+    return projectId.toString()
+  }
+
+  private async resolveCurrentUserId(): Promise<string> {
+    const user = await this.getUser()
+
+    if (!user.id) {
+      throw new Error('Unable to resolve current Redmine user')
+    }
+
+    return user.id.toString()
+  }
+
+  private async resolveNamedValue(path: string, collectionKey: string, value: string): Promise<string> {
+    const res = await this.queueApi('GET', path)
+    const entry = (res[collectionKey] || []).find((item: { id?: string | number; name?: string }) =>
+      this.matchesNamedValue(item.name, value)
+    )
+
+    if (!entry?.id) {
+      throw new Error(`Unknown ${collectionKey.replace(/_/g, ' ')} value: ${value}`)
+    }
+
+    return entry.id.toString()
+  }
+
+  private matchesNamedValue(candidate: string | undefined, expected: string): boolean {
+    if (!candidate) {
+      return false
+    }
+
+    return candidate.trim().toLowerCase() === expected.trim().toLowerCase()
   }
 
   async resolveAttachmentUrl(attachment: RedmineAttachment): Promise<string> {
