@@ -2,7 +2,7 @@ import removeAccents from 'remove-accents'
 import { MarkdownRenderer, Modal, Notice, setIcon } from 'obsidian'
 import RedmineIssuePlugin from './main'
 import { appendStatusBadge } from './lib/status-badge'
-import { RedmineAttachment, RedmineIssue } from './interfaces/redmine'
+import { RedmineAttachment, RedmineIssue, RedmineJournal, RedmineJournalDetail } from './interfaces/redmine'
 import { convertRedmineTextToMarkdown } from './lib/redmine-markdown'
 
 export default class IssueDetailsModal extends Modal {
@@ -79,8 +79,7 @@ export default class IssueDetailsModal extends Modal {
     })
 
     this.renderMetadata(issue)
-    await this.renderDescription(issue.description, attachments)
-    this.renderAttachments(attachments)
+    await this.renderTabs(issue, attachments)
   }
 
   renderMetadata(issue: RedmineIssue): void {
@@ -107,12 +106,69 @@ export default class IssueDetailsModal extends Modal {
     this.addGridField(grid, 'Last Update', this.formatDate(issue.updatedOn))
   }
 
+  async renderTabs(issue: RedmineIssue, attachments: RedmineAttachment[]): Promise<void> {
+    const section = this.createSection('Content')
+    const tabs = [
+      {
+        key: 'description',
+        label: 'Description',
+        render: async (container: HTMLDivElement) => this.renderDescription(issue.description, attachments, container)
+      },
+      {
+        key: 'history',
+        label: 'History',
+        render: async (container: HTMLDivElement) => this.renderHistory(issue.journals, container)
+      },
+      {
+        key: 'attachments',
+        label: 'Attachments',
+        render: async (container: HTMLDivElement) => this.renderAttachments(attachments, container)
+      }
+    ]
+
+    const tabList = section.createDiv({ cls: ['redmine-issue-modal-tabs'] })
+    const panelHost = section.createDiv({ cls: ['redmine-issue-modal-tab-panels'] })
+    const panels = new Map<string, HTMLDivElement>()
+    const buttons = new Map<string, HTMLButtonElement>()
+
+    tabs.forEach((tab) => {
+      const button = tabList.createEl('button', {
+        text: tab.label,
+        cls: ['redmine-issue-modal-tab'],
+        attr: { type: 'button' }
+      })
+      const panel = panelHost.createDiv({ cls: ['redmine-issue-modal-tab-panel'] })
+
+      buttons.set(tab.key, button)
+      panels.set(tab.key, panel)
+
+      button.addEventListener('click', () => {
+        buttons.forEach((tabButton, key) => {
+          const isActive = key === tab.key
+          tabButton.toggleClass('is-active', isActive)
+          tabButton.setAttribute('aria-selected', isActive ? 'true' : 'false')
+          panels.get(key)?.toggleClass('is-active', isActive)
+        })
+      })
+    })
+
+    for (const tab of tabs) {
+      const panel = panels.get(tab.key)
+      if (panel) {
+        await tab.render(panel)
+      }
+    }
+
+    const defaultButton = buttons.get(tabs[0].key)
+    defaultButton?.click()
+  }
+
   async renderDescription(
     description: string,
-    attachments: RedmineAttachment[]
+    attachments: RedmineAttachment[],
+    container: HTMLDivElement
   ): Promise<void> {
-    const section = this.createSection('Description')
-    const body = section.createDiv({ cls: ['redmine-issue-modal-description'] })
+    const body = container.createDiv({ cls: ['redmine-issue-modal-description'] })
 
     if (!description) {
       body.setText('No description')
@@ -128,18 +184,16 @@ export default class IssueDetailsModal extends Modal {
     )
   }
 
-  renderAttachments(attachments: RedmineAttachment[]): void {
-    const section = this.createSection('Attachments')
-
+  renderAttachments(attachments: RedmineAttachment[], container: HTMLDivElement): void {
     if (!attachments.length) {
-      section.createDiv({
+      container.createDiv({
         text: 'No attachments',
         cls: ['redmine-issue-modal-empty']
       })
       return
     }
 
-    const list = section.createDiv({ cls: ['redmine-issue-modal-attachments'] })
+    const list = container.createDiv({ cls: ['redmine-issue-modal-attachments'] })
     attachments.forEach((attachment) => {
       const row = list.createDiv({ cls: ['redmine-issue-modal-attachment'] })
       row.createEl('a', {
@@ -162,6 +216,51 @@ export default class IssueDetailsModal extends Modal {
       ].filter(Boolean)
       details.setText(parts.join(' • '))
     })
+  }
+
+  async renderHistory(journals: RedmineJournal[], container: HTMLDivElement): Promise<void> {
+    if (!journals.length) {
+      container.createDiv({
+        text: 'No history',
+        cls: ['redmine-issue-modal-empty']
+      })
+      return
+    }
+
+    const list = container.createDiv({ cls: ['redmine-issue-modal-history'] })
+
+    for (const journal of journals) {
+      const entry = list.createDiv({ cls: ['redmine-issue-modal-history-entry'] })
+      const header = entry.createDiv({ cls: ['redmine-issue-modal-history-header'] })
+      header.createSpan({
+        text: journal.user?.name || 'Unknown user',
+        cls: ['redmine-issue-modal-history-author']
+      })
+      header.createSpan({
+        text: this.formatDate(journal.createdOn),
+        cls: ['redmine-issue-modal-history-date']
+      })
+
+      if (journal.notes) {
+        const notes = entry.createDiv({ cls: ['redmine-issue-modal-history-notes'] })
+        await MarkdownRenderer.render(
+          this.app,
+          convertRedmineTextToMarkdown(journal.notes),
+          notes,
+          '',
+          this.plugin
+        )
+      }
+
+      if (journal.details.length) {
+        const detailsList = entry.createEl('ul', { cls: ['redmine-issue-modal-history-details'] })
+        journal.details.forEach((detail) => {
+          detailsList.createEl('li', {
+            text: this.formatJournalDetail(detail)
+          })
+        })
+      }
+    }
   }
 
   async resolveAttachments(attachments: RedmineAttachment[]): Promise<RedmineAttachment[]> {
@@ -188,6 +287,26 @@ export default class IssueDetailsModal extends Modal {
       cls: ['redmine-issue-modal-section-title']
     })
     return section
+  }
+
+  formatJournalDetail(detail: RedmineJournalDetail): string {
+    const label = detail.name || detail.property || 'Field'
+    const oldValue = detail.oldValue || 'empty'
+    const newValue = detail.newValue || 'empty'
+
+    if (detail.oldValue && detail.newValue) {
+      return `${label}: ${oldValue} -> ${newValue}`
+    }
+
+    if (detail.newValue) {
+      return `${label}: set to ${newValue}`
+    }
+
+    if (detail.oldValue) {
+      return `${label}: cleared (was ${oldValue})`
+    }
+
+    return `${label}: updated`
   }
 
   addGridField(

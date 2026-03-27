@@ -142,6 +142,31 @@
     margin-bottom: 0.5em;
 }
 
+.redmine-issue-modal-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 1em;
+}
+
+.redmine-issue-modal-tab {
+    padding: 0.4em 0.8em;
+    border-radius: 999px;
+}
+
+.redmine-issue-modal-tab.is-active {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.redmine-issue-modal-tab-panel {
+    display: none;
+}
+
+.redmine-issue-modal-tab-panel.is-active {
+    display: block;
+}
+
 .redmine-issue-modal-grid {
     display: grid;
     gap: 0.75em;
@@ -213,6 +238,45 @@
     display: flex;
     flex-direction: column;
     gap: 0.75em;
+}
+
+.redmine-issue-modal-history {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.redmine-issue-modal-history-entry {
+    padding: 0.9em 1em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    background-color: var(--background-primary-alt);
+}
+
+.redmine-issue-modal-history-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1em;
+    margin-bottom: 0.6em;
+}
+
+.redmine-issue-modal-history-author {
+    font-weight: 600;
+}
+
+.redmine-issue-modal-history-date {
+    color: var(--text-muted);
+    font-size: 0.9em;
+}
+
+.redmine-issue-modal-history-notes {
+    line-height: 1.5;
+}
+
+.redmine-issue-modal-history-details {
+    margin: 0.75em 0 0;
+    color: var(--text-muted);
+    padding-left: 1.2em;
 }
 
 .redmine-issue-modal-attachment-details,
