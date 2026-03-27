@@ -142,6 +142,15 @@
     margin-bottom: 0.5em;
 }
 
+.redmine-issue-modal-subsection:not(:first-child) {
+    margin-top: 1em;
+}
+
+.redmine-issue-modal-subsection-title {
+    margin: 0 0 0.5em;
+    font-size: 0.95em;
+}
+
 .redmine-issue-modal-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -277,6 +286,48 @@
     margin: 0.75em 0 0;
     color: var(--text-muted);
     padding-left: 1.2em;
+}
+
+.redmine-issue-modal-kv-list,
+.redmine-issue-modal-related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6em;
+}
+
+.redmine-issue-modal-kv-row,
+.redmine-issue-modal-related-item {
+    padding: 0.8em 0.9em;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    background-color: var(--background-primary-alt);
+}
+
+.redmine-issue-modal-kv-label,
+.redmine-issue-modal-related-title {
+    font-weight: 600;
+    margin-bottom: 0.2em;
+}
+
+.redmine-issue-modal-kv-value,
+.redmine-issue-modal-related-meta {
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.redmine-issue-modal-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+}
+
+.redmine-issue-modal-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3em 0.65em;
+    border-radius: 999px;
+    background-color: var(--background-primary-alt);
+    border: 1px solid var(--background-modifier-border);
 }
 
 .redmine-issue-modal-attachment-details,

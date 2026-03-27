@@ -2,7 +2,16 @@ import removeAccents from 'remove-accents'
 import { MarkdownRenderer, Notice, setIcon } from 'obsidian'
 import { appendStatusBadge } from '../lib/status-badge'
 import { convertRedmineTextToMarkdown } from '../lib/redmine-markdown'
-import { RedmineAttachment, RedmineIssue, RedmineJournal } from '../interfaces/redmine'
+import {
+  RedmineAttachment,
+  RedmineChangeset,
+  RedmineCustomField,
+  RedmineIssue,
+  RedmineIssueChild,
+  RedmineJournal,
+  RedmineRelation,
+  RedmineWatcher
+} from '../interfaces/redmine'
 import { IssueDetailsModalContext } from './types'
 
 export async function renderIssueContent(
@@ -92,8 +101,21 @@ function renderMetadata(context: IssueDetailsModalContext, issue: RedmineIssue):
   context.addGridField(grid, 'Author', issue.author?.name)
   context.addGridField(grid, 'Category', issue.category?.name)
   context.addGridField(grid, 'Version', issue.fixedVersion?.name)
+  context.addGridField(grid, 'Progress', formatDoneRatio(issue.doneRatio))
+  context.addGridField(grid, 'Estimated Hours', formatHours(issue.totalEstimatedHours || issue.estimatedHours))
+  context.addGridField(grid, 'Spent Hours', formatHours(issue.totalSpentHours || issue.spentHours))
+  context.addGridField(grid, 'Due Date', context.formatDate(issue.dueDate))
   context.addGridField(grid, 'Created', context.formatDate(issue.createdOn))
   context.addGridField(grid, 'Last Update', context.formatDate(issue.updatedOn))
+  context.addGridField(grid, 'Closed', context.formatDate(issue.closedOn))
+  issue.customFields.forEach((field) => {
+    // Skip empty custom fields
+    if (!field.value || (Array.isArray(field.value) && field.value.length === 0)) {
+      return
+    }
+
+    context.addGridField(grid, field.name, formatCustomFieldValue(field))
+  })
 }
 
 async function renderTabs(
@@ -117,6 +139,11 @@ async function renderTabs(
       key: 'attachments',
       label: 'Attachments',
       render: async (container: HTMLDivElement) => renderAttachmentsList(context, attachments, container)
+    },
+    {
+      key: 'related',
+      label: 'Related',
+      render: async (container: HTMLDivElement) => renderRelated(context, issue, container)
     }
   ]
 
@@ -263,4 +290,172 @@ async function renderHistory(
       })
     }
   }
+}
+
+async function renderRelated(
+  context: IssueDetailsModalContext,
+  issue: RedmineIssue,
+  container: HTMLDivElement
+): Promise<void> {
+  renderIssueLinksSection(
+    context,
+    container,
+    'Parent Issue',
+    issue.parent?.id ? [{ id: issue.parent.id, subject: '' }] : [],
+    (item) => createIssueLink(context, item.id, item.subject)
+  )
+  renderIssueLinksSection(
+    context,
+    container,
+    'Children',
+    issue.children,
+    (child) => createIssueLink(context, child.id, `[${child.tracker?.name || 'Issue'}] ${child.subject}`)
+  )
+  renderIssueLinksSection(
+    context,
+    container,
+    'Relations',
+    issue.relations,
+    (relation) => {
+      const relatedIssueId = relation.issueToId || relation.issueId
+      const label = [relation.relationType || 'relates', relation.delay ? `delay ${relation.delay}` : '']
+        .filter(Boolean)
+        .join(' • ')
+      return createIssueLink(context, relatedIssueId, label)
+    }
+  )
+  renderTextListSection(container, 'Watchers', issue.watchers, (watcher) => watcher.name)
+  renderChangesetsSection(context, container, issue.changesets)
+}
+
+function renderIssueLinksSection<T>(
+  context: IssueDetailsModalContext,
+  container: HTMLDivElement,
+  title: string,
+  items: T[],
+  createLink: (item: T) => HTMLAnchorElement
+): void {
+  const section = container.createDiv({ cls: ['redmine-issue-modal-subsection'] })
+  section.createEl('h4', {
+    text: title,
+    cls: ['redmine-issue-modal-subsection-title']
+  })
+
+  if (!items.length) {
+    section.createDiv({
+      text: `No ${title.toLowerCase()}`,
+      cls: ['redmine-issue-modal-empty']
+    })
+    return
+  }
+
+  const list = section.createDiv({ cls: ['redmine-issue-modal-related-list'] })
+  items.forEach((item) => {
+    const row = list.createDiv({ cls: ['redmine-issue-modal-related-item'] })
+    row.appendChild(createLink(item))
+  })
+}
+
+function renderTextListSection<T>(
+  container: HTMLDivElement,
+  title: string,
+  items: T[],
+  getLabel: (item: T) => string
+): void {
+  const section = container.createDiv({ cls: ['redmine-issue-modal-subsection'] })
+  section.createEl('h4', {
+    text: title,
+    cls: ['redmine-issue-modal-subsection-title']
+  })
+
+  if (!items.length) {
+    section.createDiv({
+      text: `No ${title.toLowerCase()}`,
+      cls: ['redmine-issue-modal-empty']
+    })
+    return
+  }
+
+  const list = section.createDiv({ cls: ['redmine-issue-modal-chip-list'] })
+  items.forEach((item) => {
+    list.createSpan({
+      text: getLabel(item),
+      cls: ['redmine-issue-modal-chip']
+    })
+  })
+}
+
+function renderChangesetsSection(
+  context: IssueDetailsModalContext,
+  container: HTMLDivElement,
+  changesets: RedmineChangeset[]
+): void {
+  const section = container.createDiv({ cls: ['redmine-issue-modal-subsection'] })
+  section.createEl('h4', {
+    text: 'Changesets',
+    cls: ['redmine-issue-modal-subsection-title']
+  })
+
+  if (!changesets.length) {
+    section.createDiv({
+      text: 'No changesets',
+      cls: ['redmine-issue-modal-empty']
+    })
+    return
+  }
+
+  const list = section.createDiv({ cls: ['redmine-issue-modal-related-list'] })
+  changesets.forEach((changeset) => {
+    const row = list.createDiv({ cls: ['redmine-issue-modal-related-item'] })
+    row.createDiv({
+      text: `r${changeset.revision}`,
+      cls: ['redmine-issue-modal-related-title']
+    })
+    row.createDiv({
+      text: [changeset.user?.name, context.formatDate(changeset.committedOn)].filter(Boolean).join(' • '),
+      cls: ['redmine-issue-modal-related-meta']
+    })
+
+    if (changeset.comments) {
+      row.createDiv({
+        text: changeset.comments,
+        cls: ['redmine-issue-modal-related-meta']
+      })
+    }
+  })
+}
+
+function createIssueLink(context: IssueDetailsModalContext, issueId: string, extraText: string): HTMLAnchorElement {
+  const link = document.createElement('a')
+  const suffix = extraText ? ` ${extraText}` : ''
+  link.textContent = `#${issueId}${suffix}`
+  link.href = context.getIssueUrl(issueId)
+  link.target = '_blank'
+  link.rel = 'noopener'
+  link.classList.add('external-link')
+  return link
+}
+
+function formatDoneRatio(doneRatio: number): string | undefined {
+  if (typeof doneRatio !== 'number' || Number.isNaN(doneRatio)) {
+    return undefined
+  }
+
+  return `${doneRatio}%`
+}
+
+function formatHours(hours: number): string | undefined {
+  if (!hours) {
+    return undefined
+  }
+
+  return `${hours} h`
+}
+
+function formatCustomFieldValue(field: RedmineCustomField): string {
+  if (Array.isArray(field.value)) {
+    return field.value.join(', ') || 'Empty'
+  }
+
+  return field.value || 'Empty'
 }
