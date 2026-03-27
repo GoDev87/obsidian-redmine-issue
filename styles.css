@@ -119,7 +119,19 @@
 }
 
 .redmine-issue-modal-link-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
     margin-bottom: 1em;
+}
+
+.redmine-issue-modal-copy-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
 }
 
 .redmine-issue-modal-section {

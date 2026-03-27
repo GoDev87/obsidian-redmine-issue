@@ -1,5 +1,5 @@
 import removeAccents from 'remove-accents'
-import { MarkdownRenderer, Modal } from 'obsidian'
+import { MarkdownRenderer, Modal, Notice, setIcon } from 'obsidian'
 import RedmineIssuePlugin from './main'
 import { appendStatusBadge } from './lib/status-badge'
 import { RedmineAttachment, RedmineIssue } from './interfaces/redmine'
@@ -43,6 +43,7 @@ export default class IssueDetailsModal extends Modal {
   async renderIssue(issue: RedmineIssue): Promise<void> {
     this.contentEl.empty()
     const attachments = await this.resolveAttachments(issue.attachments)
+    const issueUrl = this.getIssueUrl(issue.id.toString())
 
     this.contentEl.createEl('h2', {
       text: `${issue.id} ${issue.subject}`,
@@ -52,11 +53,28 @@ export default class IssueDetailsModal extends Modal {
     const linkRow = this.contentEl.createDiv({ cls: ['redmine-issue-modal-link-row'] })
     linkRow.createEl('a', {
       text: 'Open In Redmine',
-      href: `https://${this.plugin.settings.host}/issues/${issue.id.toString()}`,
+      href: issueUrl,
       cls: ['external-link'],
       attr: {
         rel: 'noopener',
         target: '_blank'
+      }
+    })
+
+    const copyButton = linkRow.createEl('button', {
+      cls: ['redmine-issue-modal-copy-link'],
+      attr: {
+        type: 'button',
+        'aria-label': 'Copy Redmine issue URL'
+      }
+    })
+    setIcon(copyButton, 'copy')
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(issueUrl)
+        new Notice('Redmine issue URL copied')
+      } catch {
+        new Notice('Unable to copy Redmine issue URL')
       }
     })
 
@@ -230,6 +248,10 @@ export default class IssueDetailsModal extends Modal {
     }
 
     return `${(size / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  getIssueUrl(issueId: string): string {
+    return `https://${this.plugin.settings.host}/issues/${issueId}`
   }
 
   onClose(): void {
