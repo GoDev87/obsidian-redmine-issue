@@ -54,6 +54,8 @@ export default class IssueWidget {
       return
     }
 
+    const priorityName = this.issue.priority?.name
+
     this.el.createDiv({
       text: `${this.issue.subject}`,
       cls: ['redmine-issue-title']
@@ -88,7 +90,13 @@ export default class IssueWidget {
     const meta = this.el.createDiv({ cls: ['redmine-issue-meta'] })
     this.addMetaField(meta, 'Assigned', this.issue.assignedTo?.name)
     this.addMetaField(meta, 'Updated', this.formatUpdatedAt(this.issue.updatedOn))
-    this.addPriorityMetaField(meta, 'Priority', this.issue.priority?.name)
+    this.addMetaField(meta, 'Priority', priorityName, {
+      valueClasses: [
+        'redmine-priority',
+        'redmine-priority-small',
+        `redmine-priority-${removeAccents(priorityName ?? '').toLowerCase()}`
+      ]
+    })
     // this.addStatusField(meta, 'Status', this.issue.status)
   }
 
@@ -104,7 +112,15 @@ export default class IssueWidget {
     new IssueDetailsModal(this.plugin, this.issue.id.toString()).open()
   }
 
-  addMetaField(container: HTMLDivElement, label: string, value?: string): void {
+  addMetaField(
+    container: HTMLDivElement,
+    label: string,
+    value?: string,
+    options?: {
+      valueClasses?: string[]
+      renderValue?: (container: HTMLSpanElement, value: string) => void
+    }
+  ): void {
     if (!value) {
       return
     }
@@ -114,48 +130,16 @@ export default class IssueWidget {
       text: `${label}: `,
       cls: ['redmine-issue-meta-label']
     })
-    row.createSpan({
-      text: value,
-      cls: ['redmine-issue-meta-value']
-    })
-  }
-
-  addPriorityMetaField(container: HTMLDivElement, label: string, value?: string): void {
-    if (!value) {
-      return
-    }
-
-    const row = container.createDiv({ cls: ['redmine-issue-meta-row'] })
-    row.createSpan({
-      text: `${label}: `,
-      cls: ['redmine-issue-meta-label']
-    })
-    row.createSpan({
-      text: value,
-      cls: [
-        'redmine-issue-meta-value',
-        'redmine-priority',
-        'redmine-priority-small',
-        `redmine-priority-${removeAccents(value).toLowerCase()}`
-      ]
-    })
-  }
-
-  addStatusField(container: HTMLDivElement, label: string, value: string): void {
-    if (!value) {
-      return
-    }
-
-    const row = container.createDiv({ cls: ['redmine-issue-meta-row'] })
-    row.createSpan({
-      text: `${label}: `,
-      cls: ['redmine-issue-meta-label']
-    })
-
     const valueContainer = row.createSpan({
-      cls: ['redmine-issue-meta-value']
+      cls: ['redmine-issue-meta-value', ...(options?.valueClasses ?? [])]
     })
-    appendStatusBadge(valueContainer, value)
+
+    if (options?.renderValue) {
+      options.renderValue(valueContainer, value)
+      return
+    }
+
+    valueContainer.setText(value)
   }
 
   formatUpdatedAt(updatedAt: string): string {

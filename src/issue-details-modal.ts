@@ -65,11 +65,19 @@ export default class IssueDetailsModal extends Modal {
   renderMetadata(issue: RedmineIssue): void {
     const section = this.createSection('Details')
     const grid = section.createDiv({ cls: ['redmine-issue-modal-grid'] })
+    const priorityName = issue.priority?.name
 
     this.addGridField(grid, 'Project', issue.project.name)
     this.addGridField(grid, 'Tracker', issue.tracker?.name)
-    this.addStatusGridField(grid, 'Status', issue.status?.name)
-    this.addPriorityGridField(grid, 'Priority', issue.priority?.name)
+    this.addGridField(grid, 'Status', issue.status?.name, {
+      renderValue: (container, value) => appendStatusBadge(container, value)
+    })
+    this.addGridField(grid, 'Priority', priorityName, {
+      valueClasses: [
+        'redmine-priority',
+        `redmine-priority-${removeAccents(priorityName ?? '').toLowerCase()}`
+      ]
+    })
     this.addGridField(grid, 'Assigned To', issue.assignedTo?.name)
     this.addGridField(grid, 'Author', issue.author?.name)
     this.addGridField(grid, 'Category', issue.category?.name)
@@ -139,23 +147,15 @@ export default class IssueDetailsModal extends Modal {
     return section
   }
 
-  addGridField(container: HTMLDivElement, label: string, value?: string): HTMLDivElement | void {
-    if (!value) {
-      return
+  addGridField(
+    container: HTMLDivElement,
+    label: string,
+    value?: string,
+    options?: {
+      valueClasses?: string[]
+      renderValue?: (container: HTMLDivElement, value: string) => void
     }
-
-    const row = container.createDiv({ cls: ['redmine-issue-modal-field'] })
-    row.createDiv({
-      text: label,
-      cls: ['redmine-issue-modal-field-label']
-    })
-    return row.createDiv({
-      text: value,
-      cls: ['redmine-issue-modal-field-value']
-    })
-  }
-
-  addStatusGridField(container: HTMLDivElement, label: string, value?: string): void {
+  ): HTMLDivElement | void {
     if (!value) {
       return
     }
@@ -166,29 +166,16 @@ export default class IssueDetailsModal extends Modal {
       cls: ['redmine-issue-modal-field-label']
     })
     const valueContainer = row.createDiv({
-      cls: ['redmine-issue-modal-field-value']
+      cls: ['redmine-issue-modal-field-value', ...(options?.valueClasses ?? [])]
     })
-    appendStatusBadge(valueContainer, value)
-  }
 
-  addPriorityGridField(container: HTMLDivElement, label: string, value?: string): void {
-    if (!value) {
-      return
+    if (options?.renderValue) {
+      options.renderValue(valueContainer, value)
+      return valueContainer
     }
 
-    const row = container.createDiv({ cls: ['redmine-issue-modal-field'] })
-    row.createDiv({
-      text: label,
-      cls: ['redmine-issue-modal-field-label']
-    })
-    row.createDiv({
-      text: value,
-      cls: [
-        'redmine-issue-modal-field-value',
-        'redmine-priority',
-        `redmine-priority-${removeAccents(value).toLowerCase()}`
-      ]
-    })
+    valueContainer.setText(value)
+    return valueContainer
   }
 
   appendLinkifiedText(container: HTMLDivElement, text: string): void {
