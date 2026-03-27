@@ -99,6 +99,10 @@ export default class IssueDetailsModal extends Modal {
     return `https://${this.plugin.settings.host}/issues/${issueId}`
   }
 
+  openIssue(issueId: string): void {
+    new IssueDetailsModal(this.plugin, issueId).open()
+  }
+
   onClose(): void {
     this.modalEl.removeClass('redmine-issue-modal-shell')
     this.objectUrls.forEach((url) => URL.revokeObjectURL(url))

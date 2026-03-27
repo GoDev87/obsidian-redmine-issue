@@ -297,14 +297,14 @@ async function renderRelated(
   issue: RedmineIssue,
   container: HTMLDivElement
 ): Promise<void> {
-  const relatedAccess = await resolveRelatedIssueAccess(context, issue)
+  const relatedIssues = await resolveRelatedIssues(context, issue)
 
   renderIssueLinksSection(
     context,
     container,
     'Parent Issue',
     issue.parent?.id ? [{ id: issue.parent.id, subject: '' }] : [],
-    (item) => createIssueLink(context, item.id, item.subject, relatedAccess.get(item.id) !== false)
+    (item) => createIssueLink(context, item.id, item.subject, relatedIssues.get(item.id))
   )
   renderIssueLinksSection(
     context,
@@ -315,7 +315,7 @@ async function renderRelated(
       context,
       child.id,
       `[${child.tracker?.name || 'Issue'}] ${child.subject}`,
-      relatedAccess.get(child.id) !== false
+      relatedIssues.get(child.id)
     )
   )
   renderIssueLinksSection(
@@ -328,7 +328,7 @@ async function renderRelated(
       const label = [relation.relationType || 'relates', relation.delay ? `delay ${relation.delay}` : '']
         .filter(Boolean)
         .join(' • ')
-      return createIssueLink(context, relatedIssueId, label, relatedAccess.get(relatedIssueId) !== false)
+      return createIssueLink(context, relatedIssueId, label, relatedIssues.get(relatedIssueId))
     }
   )
   renderTextListSection(container, 'Watchers', issue.watchers, (watcher) => watcher.name)
@@ -432,10 +432,10 @@ function renderChangesetsSection(
   })
 }
 
-async function resolveRelatedIssueAccess(
+async function resolveRelatedIssues(
   context: IssueDetailsModalContext,
   issue: RedmineIssue
-): Promise<Map<string, boolean>> {
+): Promise<Map<string, RedmineIssue | null>> {
   const relatedIds = new Set<string>()
 
   if (issue.parent?.id) {
@@ -453,10 +453,10 @@ async function resolveRelatedIssueAccess(
   const accessEntries = await Promise.all(
     [...relatedIds].map(async (issueId) => {
       try {
-        await context.plugin.redmineClient.getIssueDetails(issueId)
-        return [issueId, true] as const
+        const relatedIssue = await context.plugin.redmineClient.getIssueDetails(issueId)
+        return [issueId, relatedIssue] as const
       } catch {
-        return [issueId, false] as const
+        return [issueId, null] as const
       }
     })
   )
@@ -468,21 +468,50 @@ function createIssueLink(
   context: IssueDetailsModalContext,
   issueId: string,
   extraText: string,
-  isAccessible: boolean
+  relatedIssue: RedmineIssue | null | undefined
 ): HTMLElement {
   const wrapper = document.createElement('div')
   wrapper.classList.add('redmine-issue-modal-related-link')
 
   const label = `#${issueId}${extraText ? ` ${extraText}` : ''}`
 
-  if (isAccessible) {
+  if (relatedIssue) {
     const link = document.createElement('a')
     link.textContent = label
     link.href = context.getIssueUrl(issueId)
-    link.target = '_blank'
-    link.rel = 'noopener'
     link.classList.add('external-link')
+    link.addEventListener('click', (event) => {
+      event.preventDefault()
+      context.openIssue(issueId)
+    })
     wrapper.appendChild(link)
+
+    const meta = document.createElement('div')
+    meta.classList.add('redmine-issue-modal-related-summary')
+
+    if (relatedIssue.status?.name) {
+      appendStatusBadge(meta, relatedIssue.status.name)
+    }
+
+    if (relatedIssue.assignedTo?.name) {
+      const assignee = document.createElement('span')
+      assignee.classList.add('redmine-issue-modal-related-summary-text')
+      assignee.textContent = relatedIssue.assignedTo.name
+      meta.appendChild(assignee)
+    }
+
+    const doneRatio = formatDoneRatio(relatedIssue.doneRatio)
+    if (doneRatio) {
+      const progress = document.createElement('span')
+      progress.classList.add('redmine-issue-modal-related-summary-text')
+      progress.textContent = doneRatio
+      meta.appendChild(progress)
+    }
+
+    if (meta.childNodes.length > 0) {
+      wrapper.appendChild(meta)
+    }
+
     return wrapper
   }
 

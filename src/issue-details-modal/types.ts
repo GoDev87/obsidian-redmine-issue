@@ -22,4 +22,5 @@ export interface IssueDetailsModalContext {
   formatFileSize(size: number): string
   formatJournalDetail(label: string, oldValue: string, newValue: string): string
   getIssueUrl(issueId: string): string
+  openIssue(issueId: string): void
 }

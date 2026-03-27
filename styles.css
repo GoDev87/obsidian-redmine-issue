@@ -316,8 +316,9 @@
 }
 
 .redmine-issue-modal-related-link {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 0.45em;
 }
 
@@ -329,6 +330,18 @@
 .redmine-issue-modal-related-lock {
     display: inline-flex;
     align-items: center;
+}
+
+.redmine-issue-modal-related-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45em;
+}
+
+.redmine-issue-modal-related-summary-text {
+    color: var(--text-muted);
+    font-size: 0.9em;
 }
 
 .redmine-issue-modal-chip-list {
