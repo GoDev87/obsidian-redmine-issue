@@ -18,7 +18,7 @@ export async function renderTabs(
     },
     {
       key: 'comments',
-      label: 'Comments',
+      label: `Comments (${issue.journals.filter((journal) => journal.notes).length})`,
       render: async (container: HTMLDivElement) => renderComments(context, issue.journals, container)
     },
     {
