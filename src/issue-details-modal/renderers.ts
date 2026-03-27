@@ -297,19 +297,26 @@ async function renderRelated(
   issue: RedmineIssue,
   container: HTMLDivElement
 ): Promise<void> {
+  const relatedAccess = await resolveRelatedIssueAccess(context, issue)
+
   renderIssueLinksSection(
     context,
     container,
     'Parent Issue',
     issue.parent?.id ? [{ id: issue.parent.id, subject: '' }] : [],
-    (item) => createIssueLink(context, item.id, item.subject)
+    (item) => createIssueLink(context, item.id, item.subject, relatedAccess.get(item.id) !== false)
   )
   renderIssueLinksSection(
     context,
     container,
     'Children',
     issue.children,
-    (child) => createIssueLink(context, child.id, `[${child.tracker?.name || 'Issue'}] ${child.subject}`)
+    (child) => createIssueLink(
+      context,
+      child.id,
+      `[${child.tracker?.name || 'Issue'}] ${child.subject}`,
+      relatedAccess.get(child.id) !== false
+    )
   )
   renderIssueLinksSection(
     context,
@@ -321,7 +328,7 @@ async function renderRelated(
       const label = [relation.relationType || 'relates', relation.delay ? `delay ${relation.delay}` : '']
         .filter(Boolean)
         .join(' • ')
-      return createIssueLink(context, relatedIssueId, label)
+      return createIssueLink(context, relatedIssueId, label, relatedAccess.get(relatedIssueId) !== false)
     }
   )
   renderTextListSection(container, 'Watchers', issue.watchers, (watcher) => watcher.name)
@@ -333,7 +340,7 @@ function renderIssueLinksSection<T>(
   container: HTMLDivElement,
   title: string,
   items: T[],
-  createLink: (item: T) => HTMLAnchorElement
+  createLink: (item: T) => HTMLElement
 ): void {
   const section = container.createDiv({ cls: ['redmine-issue-modal-subsection'] })
   section.createEl('h4', {
@@ -425,15 +432,73 @@ function renderChangesetsSection(
   })
 }
 
-function createIssueLink(context: IssueDetailsModalContext, issueId: string, extraText: string): HTMLAnchorElement {
-  const link = document.createElement('a')
-  const suffix = extraText ? ` ${extraText}` : ''
-  link.textContent = `#${issueId}${suffix}`
-  link.href = context.getIssueUrl(issueId)
-  link.target = '_blank'
-  link.rel = 'noopener'
-  link.classList.add('external-link')
-  return link
+async function resolveRelatedIssueAccess(
+  context: IssueDetailsModalContext,
+  issue: RedmineIssue
+): Promise<Map<string, boolean>> {
+  const relatedIds = new Set<string>()
+
+  if (issue.parent?.id) {
+    relatedIds.add(issue.parent.id)
+  }
+
+  issue.children.forEach((child) => relatedIds.add(child.id))
+  issue.relations.forEach((relation) => {
+    const relatedIssueId = relation.issueToId || relation.issueId
+    if (relatedIssueId) {
+      relatedIds.add(relatedIssueId)
+    }
+  })
+
+  const accessEntries = await Promise.all(
+    [...relatedIds].map(async (issueId) => {
+      try {
+        await context.plugin.redmineClient.getIssueDetails(issueId)
+        return [issueId, true] as const
+      } catch {
+        return [issueId, false] as const
+      }
+    })
+  )
+
+  return new Map(accessEntries)
+}
+
+function createIssueLink(
+  context: IssueDetailsModalContext,
+  issueId: string,
+  extraText: string,
+  isAccessible: boolean
+): HTMLElement {
+  const wrapper = document.createElement('div')
+  wrapper.classList.add('redmine-issue-modal-related-link')
+
+  const label = `#${issueId}${extraText ? ` ${extraText}` : ''}`
+
+  if (isAccessible) {
+    const link = document.createElement('a')
+    link.textContent = label
+    link.href = context.getIssueUrl(issueId)
+    link.target = '_blank'
+    link.rel = 'noopener'
+    link.classList.add('external-link')
+    wrapper.appendChild(link)
+    return wrapper
+  }
+
+  const text = document.createElement('span')
+  text.textContent = label
+  text.classList.add('redmine-issue-modal-related-link-text')
+  wrapper.appendChild(text)
+
+  const icon = document.createElement('span')
+  icon.classList.add('redmine-issue-modal-related-lock')
+  icon.setAttribute('aria-label', 'Access denied')
+  icon.setAttribute('title', 'You do not have access to this related issue')
+  setIcon(icon, 'lock')
+  wrapper.appendChild(icon)
+
+  return wrapper
 }
 
 function formatDoneRatio(doneRatio: number): string | undefined {

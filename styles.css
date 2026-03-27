@@ -315,6 +315,22 @@
     line-height: 1.45;
 }
 
+.redmine-issue-modal-related-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+}
+
+.redmine-issue-modal-related-link-text,
+.redmine-issue-modal-related-lock {
+    color: var(--text-muted);
+}
+
+.redmine-issue-modal-related-lock {
+    display: inline-flex;
+    align-items: center;
+}
+
 .redmine-issue-modal-chip-list {
     display: flex;
     flex-wrap: wrap;
