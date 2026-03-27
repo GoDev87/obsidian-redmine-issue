@@ -1,3 +1,4 @@
+import removeAccents from 'remove-accents'
 import { Modal } from 'obsidian'
 import RedmineIssuePlugin from './main'
 import { appendStatusBadge } from './lib/status-badge'
@@ -68,7 +69,7 @@ export default class IssueDetailsModal extends Modal {
     this.addGridField(grid, 'Project', issue.project.name)
     this.addGridField(grid, 'Tracker', issue.tracker?.name)
     this.addStatusGridField(grid, 'Status', issue.status?.name)
-    this.addGridField(grid, 'Priority', issue.priority?.name)
+    this.addPriorityGridField(grid, 'Priority', issue.priority?.name)
     this.addGridField(grid, 'Assigned To', issue.assignedTo?.name)
     this.addGridField(grid, 'Author', issue.author?.name)
     this.addGridField(grid, 'Category', issue.category?.name)
@@ -138,7 +139,7 @@ export default class IssueDetailsModal extends Modal {
     return section
   }
 
-  addGridField(container: HTMLDivElement, label: string, value?: string): void {
+  addGridField(container: HTMLDivElement, label: string, value?: string): HTMLDivElement | void {
     if (!value) {
       return
     }
@@ -148,7 +149,7 @@ export default class IssueDetailsModal extends Modal {
       text: label,
       cls: ['redmine-issue-modal-field-label']
     })
-    row.createDiv({
+    return row.createDiv({
       text: value,
       cls: ['redmine-issue-modal-field-value']
     })
@@ -168,6 +169,26 @@ export default class IssueDetailsModal extends Modal {
       cls: ['redmine-issue-modal-field-value']
     })
     appendStatusBadge(valueContainer, value)
+  }
+
+  addPriorityGridField(container: HTMLDivElement, label: string, value?: string): void {
+    if (!value) {
+      return
+    }
+
+    const row = container.createDiv({ cls: ['redmine-issue-modal-field'] })
+    row.createDiv({
+      text: label,
+      cls: ['redmine-issue-modal-field-label']
+    })
+    row.createDiv({
+      text: value,
+      cls: [
+        'redmine-issue-modal-field-value',
+        'redmine-field-priority',
+        `redmine-priority-${removeAccents(value).toLowerCase()}`
+      ]
+    })
   }
 
   appendLinkifiedText(container: HTMLDivElement, text: string): void {
