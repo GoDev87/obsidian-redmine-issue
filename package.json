@@ -1,7 +1,7 @@
 {
     "name": "obsidian-redmine-issue",
-    "version": "0.4.1",
-    "description": "Obsidian Plugin for Redmine issue details",
+    "version": "0.1.0",
+    "description": "Obsidian Plugin for Redmine issues",
     "main": "main.js",
     "scripts": {
         "dev": "rollup --config rollup.config.js -w",
