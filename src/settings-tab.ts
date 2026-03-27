@@ -42,7 +42,7 @@ export default class RedmineIssueSettingTab extends PluginSettingTab {
 			.setName('Test credentials')
 			.setDesc('Retrieve current logged user')
 			.addButton(button => button
-				.setButtonText('test')
+				.setButtonText('Test')
 				.onClick(() => {
 					button.setDisabled(true)
 					this.plugin.redmineClient.getUser()
