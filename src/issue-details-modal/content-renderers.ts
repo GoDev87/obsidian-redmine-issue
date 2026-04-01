@@ -28,6 +28,7 @@ export async function renderDescription(
 export async function renderComments(
   context: IssueDetailsModalContext,
   journals: RedmineJournal[],
+  attachments: RedmineAttachment[],
   container: HTMLDivElement
 ): Promise<void> {
   const comments = journals.filter((journal) => journal.notes)
@@ -57,7 +58,7 @@ export async function renderComments(
     const notes = entry.createDiv({ cls: ['redmine-issue-modal-history-notes'] })
     await MarkdownRenderer.render(
       context.app,
-      convertRedmineTextToMarkdown(comment.notes),
+      convertRedmineTextToMarkdown(comment.notes, attachments),
       notes,
       '',
       context.plugin
@@ -68,6 +69,7 @@ export async function renderComments(
 export async function renderHistory(
   context: IssueDetailsModalContext,
   journals: RedmineJournal[],
+  attachments: RedmineAttachment[],
   container: HTMLDivElement
 ): Promise<void> {
   if (!journals.length) {
@@ -96,7 +98,7 @@ export async function renderHistory(
       const notes = entry.createDiv({ cls: ['redmine-issue-modal-history-notes'] })
       await MarkdownRenderer.render(
         context.app,
-        convertRedmineTextToMarkdown(journal.notes),
+        convertRedmineTextToMarkdown(journal.notes, attachments),
         notes,
         '',
         context.plugin

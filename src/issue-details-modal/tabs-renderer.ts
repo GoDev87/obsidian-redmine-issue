@@ -19,12 +19,12 @@ export async function renderTabs(
     {
       key: 'comments',
       label: `Comments (${issue.journals.filter((journal) => journal.notes).length})`,
-      render: async (container: HTMLDivElement) => renderComments(context, issue.journals, container)
+      render: async (container: HTMLDivElement) => renderComments(context, issue.journals, attachments, container)
     },
     {
       key: 'history',
       label: 'History',
-      render: async (container: HTMLDivElement) => renderHistory(context, issue.journals, container)
+      render: async (container: HTMLDivElement) => renderHistory(context, issue.journals, attachments, container)
     },
     {
       key: 'attachments',
