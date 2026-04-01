@@ -1,4 +1,3 @@
-import * as os from 'os'
 import { Plugin } from 'obsidian'
 import './lib/icons'
 import RedmineClient from './lib/redmine'
@@ -41,7 +40,10 @@ export default class RedmineIssuePlugin extends Plugin {
 
 	async issueBlockProcessor(content: string, el: HTMLElement): Promise<void> {
 		el.empty()
-		const issueIds = content.split(os.EOL).filter(key => key.trim().length > 0)
+		const issueIds = content
+			.split(/\r?\n/)
+			.map(identifier => this.normalizeIssueIdentifier(identifier))
+			.filter((identifier): identifier is string => Boolean(identifier))
 		this.renderIssueGrid(issueIds, el)
 	}
 
@@ -89,6 +91,20 @@ export default class RedmineIssuePlugin extends Plugin {
 			new IssueWidget(this, issueWidget)
 				.setIssueIdentifier(key)
 		}
+	}
+
+	normalizeIssueIdentifier(identifier: string): string | null {
+		const trimmedIdentifier = identifier.trim()
+		if (!trimmedIdentifier) {
+			return null
+		}
+
+		const issueUrlMatch = trimmedIdentifier.match(/\/issues\/(\d+)(?:[/?#]|$)/)
+		if (issueUrlMatch) {
+			return issueUrlMatch[1]
+		}
+
+		return trimmedIdentifier
 	}
 
 	parseIssueQuery(content: string): Record<string, string> {
